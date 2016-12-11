@@ -1,0 +1,32 @@
+{
+    "name" : "dodbc",
+    "description" : "Hello World - A minimal DUB bundle.",
+    "configurations" : [
+        {
+            "name": "build_x86",
+            "targetType" : "library",
+            "versions": ["x86"],
+            "buildTypes" : ["release", "docs"],
+        },
+        {
+            "name": "build_x86_64",
+            "targetType" : "library",
+            "versions": ["x86_64"],
+            "buildTypes" : ["release", "docs"],
+        },
+        {
+            "name": "test_x86",
+            "targetType" : "executable",
+            "versions": ["unittest", "x86"],
+            "buildTypes" : ["unittest-cov", "debug", "profile"],
+        },
+        {
+            "name": "test_x86_64",
+            "targetType" : "executable",
+            "versions": ["unittest", "x86_64"],
+            "buildTypes" : ["unittest-cov", "debug", "profile"],
+        },
+    ],
+    "dependencies" : {
+    }
+}
