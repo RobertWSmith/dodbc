@@ -2,7 +2,7 @@ module dodbc.constants;
 
 import dodbc.type_alias;
 
-enum ODBCReturn : return_type
+enum ODBCReturn : SQLRETURN
 {
     Success = SQL_SUCCESS,
     SuccessWithInfo = SQL_SUCCESS_WITH_INFO,

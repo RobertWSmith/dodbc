@@ -8,7 +8,7 @@ import std.typecons : Ternary;
 import std.conv : to;
 import std.string : fromStringz;
 
-package ODBCReturn ret(return_type rc)
+package ODBCReturn ret(SQLRETURN rc)
 {
     return to!ODBCReturn(rc);
 }
