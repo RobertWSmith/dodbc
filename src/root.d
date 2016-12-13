@@ -1,46 +1,14 @@
 module dodbc.root;
 
+public import dodbc.type_alias;
+public import dodbc.constants;
+
 import std.traits : isImplicitlyConvertible;
 import std.typecons : Ternary;
 import std.conv : to;
 import std.string : fromStringz;
 
-alias SQLULEN = ulong;
-alias SQLLEN = long;
-
-alias handle_t = SQLHANDLE;
-alias pointer_t = SQLPOINTER;
-
-enum ODBCReturn : SQLRETURN
-{
-    Success = SQL_SUCCESS,
-    SuccessWithInfo = SQL_SUCCESS_WITH_INFO,
-    NoData = SQL_NO_DATA,
-    Error = SQL_ERROR,
-    InvalidHandle = SQL_INVALID_HANDLE,
-    StillExecuting = SQL_STILL_EXECUTING,
-    NeedData = SQL_NEED_DATA
-}
-
-enum StringLengths : SQLINTEGER
-{
-    NullTerminatedString = SQL_NTS,
-    IsPointer = SQL_IS_POINTER,
-    IsInteger = SQL_IS_INTEGER,
-    IsUnsigned = SQL_IS_UINTEGER,
-    Undefined,
-}
-
-enum HandleType : SQLSMALLINT
-{
-    Environment = SQL_HANDLE_ENV,
-    Connection = SQL_HANDLE_DBC,
-    Statement = SQL_HANDLE_STMT,
-    Description = SQL_HANDLE_DESC,
-    Undefined,
-}
-
-package ODBCReturn ret(SQLRETURN rc)
+package ODBCReturn ret(return_type rc)
 {
     return to!ODBCReturn(rc);
 }
