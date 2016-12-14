@@ -6,7 +6,7 @@ public import dodbc.constants;
 import std.traits : isImplicitlyConvertible;
 import std.typecons : Ternary;
 import std.conv : to;
-import std.string : fromStringz;
+import std.string : format, strip, fromStringz, toStringz;
 
 package ODBCReturn ret(SQLRETURN rc)
 {
@@ -16,6 +16,48 @@ package ODBCReturn ret(SQLRETURN rc)
 package bool isAllocated(handle_t handle)
 {
     return !(handle == SQL_NULL_HANDLE);
+}
+
+package template str_map_conv(Char_)
+{
+    private alias Char = Char_;
+    private alias String = immutable(Char)[];
+    private alias StringMap = String[String];
+
+    // 1 = key
+    // 2 = value
+    // 3 = assign_sep
+    // 4 = open_quotechar
+    // 5 = close_quotechar
+    // 6 = value_sep
+    private enum String _format_string = "%1$s%3$s%4$s%2$s%5$s%6$s";
+
+    String str_map_conv(StringMap input, Char assign_sep = '=',
+            Char value_sep = ';', Char open_quotechar = '{', Char close_quotechar = '}')
+    {
+        String output = "";
+        foreach (key, value; input)
+            output ~= format(_format_string, key, value, assign_sep,
+                    open_quotechar, close_quotechar, value_sep);
+        return output;
+    }
+
+    StringMap str_map_conv(String input, Char assign_sep = '=',
+            Char value_sep = ';', Char open_quotechar = '{', Char close_quotechar = '}')
+    {
+        StringMap output;
+        return output;
+    }
+}
+
+package char[] str_conv(string input)
+{
+    return input.strip.toStringz.to!(char[]);
+}
+
+package string str_conv(char[] input)
+{
+    return input.ptr.fromStringz.strip.to!string;
 }
 
 package string[] diagnose(HandleType ht, handle_t handle)

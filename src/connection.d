@@ -1,10 +1,5 @@
 module dodbc.connection;
 
-//import etc.c.odbc.sql;
-//import etc.c.odbc.sqlext;
-//import etc.c.odbc.sqltypes;
-//version (Windows) pragma(lib, "odbc32");
-
 import std.conv : to;
 import std.typecons : Ternary, Tuple;
 import std.traits : EnumMembers;
@@ -14,7 +9,6 @@ import std.uuid;
 import dodbc.root;
 import dodbc.environment;
 import dodbc.transaction;
-
 
 class Connection : Handle!(HandleType.Connection, SQLGetConnectAttr,
         SQLSetConnectAttr, ConnectionAttributes)
@@ -27,7 +21,7 @@ class Connection : Handle!(HandleType.Connection, SQLGetConnectAttr,
     package this()
     {
         super();
-        this._env = new Environment(ODBCVersion.v3);
+        this._env = environment_factory();
         this.allocate(((this.environment).handle));
     }
 
@@ -53,8 +47,8 @@ class Connection : Handle!(HandleType.Connection, SQLGetConnectAttr,
     public ODBCReturn getInfo(InfoType info_type, pointer_t value_ptr,
             SQLSMALLINT buffer_length = 0, SQLSMALLINT* string_length_ptr = null)
     {
-        return to!ODBCReturn(SQLGetInfo((this.handle), to!SQLSMALLINT(info_type), value_ptr,
-                buffer_length, string_length_ptr));
+        return to!ODBCReturn(SQLGetInfo((this.handle), to!SQLSMALLINT(info_type),
+                value_ptr, buffer_length, string_length_ptr));
     }
 
     public ODBCReturn connect(string dsn, string uid, string pwd, handle_t event_handle = null)
@@ -94,15 +88,15 @@ class Connection : Handle!(HandleType.Connection, SQLGetConnectAttr,
         return to!ODBCReturn(SQLDisconnect((this.handle)));
     }
 
-//    public void enable_async(handle_t event_handle)
-//    {
-//
-//    }
+    //    public void enable_async(handle_t event_handle)
+    //    {
+    //
+    //    }
 
-//    public void async_complete()
-//    {
-//
-//    }
+    //    public void async_complete()
+    //    {
+    //
+    //    }
 
     public @property Environment environment()
     {
@@ -334,7 +328,7 @@ class Connection : Handle!(HandleType.Connection, SQLGetConnectAttr,
     }
 }
 
-private Connection setup_connect(uint login_timeout_ = 0,
+private Connection connection_factory(uint login_timeout_ = 0,
         ODBCCursors odbc_cursors_ = ODBCCursors.UseDriver)
 {
     Connection conn = new Connection();
@@ -346,7 +340,7 @@ private Connection setup_connect(uint login_timeout_ = 0,
 Connection connect(string dsn, string uid = null, string pwd = null,
         uint login_timeout_ = 0, ODBCCursors odbc_cursors_ = ODBCCursors.UseDriver)
 {
-    Connection conn = setup_connect(login_timeout_, odbc_cursors_);
+    Connection conn = connection_factory(login_timeout_, odbc_cursors_);
     conn.connect(dsn, uid, pwd);
     return conn;
 }
@@ -354,7 +348,7 @@ Connection connect(string dsn, string uid = null, string pwd = null,
 Connection connect(string connection_string = null, uint login_timeout_ = 0,
         ODBCCursors odbc_cursors_ = ODBCCursors.UseDriver)
 {
-    Connection conn = setup_connect(login_timeout_, odbc_cursors_);
+    Connection conn = connection_factory(login_timeout_, odbc_cursors_);
     if (connection_string !is null)
         conn.connect(connection_string);
     return conn;

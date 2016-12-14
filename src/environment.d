@@ -3,26 +3,39 @@ module dodbc.environment;
 import dodbc.root;
 
 import std.conv : to;
-import std.typecons : Ternary, Tuple;
 import std.string : fromStringz;
 
-//import etc.c.odbc.sql;
-//import etc.c.odbc.sqlext;
-//version (Windows) pragma(lib, "odbc32");
+struct Drivers
+{
+    string description;
+    string attributes;
+}
 
-alias Drivers = Tuple!(string, "description", string, "attributes");
-alias DataSources = Tuple!(string, "server_name", string, "description");
+struct DataSources
+{
+    string server_name;
+    string description;
+}
 
 package final class Environment : Handle!(HandleType.Environment,
         SQLGetEnvAttr, SQLSetEnvAttr, EnvironmentAttributes)
 {
+    public enum ODBCVersion odbc_version = ODBCVersion.v3_80;
     private bool _lowercase;
+    private bool _null_terminated_strings;
+    private ConnectionPoolMatch _connection_pool_match;
+    private ConnectionPooling _connection_pooling;
 
-    package this(ODBCVersion ver = ODBCVersion.v3, bool lowercase = false)
+    package this(bool _lowercase, bool _null_terminated_strings,
+            ConnectionPoolMatch _connection_pool_match, ConnectionPooling _connection_pooling)
     {
         super();
+        this.lowercase = _lowercase;
+        this.null_terminated_strings = _null_terminated_strings;
+        this.connection_pool_match = _connection_pool_match;
+        this.connection_pooling = _connection_pooling;
+
         this.allocate();
-        this.odbc_version = ver;
     }
 
     public @property bool lowercase()
@@ -35,72 +48,106 @@ package final class Environment : Handle!(HandleType.Environment,
         this._lowercase = input;
     }
 
-    public @property Ternary null_terminated_strings()
+    public override ODBCReturn allocate(handle_t input = SQL_NULL_HANDLE)
     {
-        Ternary output = Ternary.unknown;
+        ODBCReturn output = super.allocate(input);
+        this.apply_odbc_version();
+        this.apply_null_terminated_strings();
+        this.apply_connection_pool_match();
+        this.apply_connection_pooling();
+        return output;
+    }
+
+    public @property bool null_terminated_strings()
+    {
         if (this.isAllocated)
         {
             SQLINTEGER value_ptr = SQLINTEGER.init;
             this.getAttribute(EnvironmentAttributes.NullTerminatedStrings, &value_ptr);
-            output = (value_ptr == SQL_TRUE);
+            this._null_terminated_strings = (value_ptr == SQL_TRUE);
         }
-        return output;
+        return this._null_terminated_strings;
     }
 
-    private @property void null_terminated_strings(U : bool)(U input)
+    private @property void null_terminated_strings(bool input)
+    {
+        this._null_terminated_strings = input;
+        this.apply_null_terminated_strings();
+    }
+
+    private ODBCReturn apply_null_terminated_strings()
     {
         if (this.isAllocated)
         {
-            SQLINTEGER value_ptr = input ? SQL_TRUE : SQL_FALSE;
-            this.setAttribute(EnvironmentAttributes.NullTerminatedStrings, &value_ptr);
+            SQLINTEGER value_ptr = to!SQLINTEGER(this.null_terminated_strings ? SQL_TRUE : SQL_FALSE);
+            return this.setAttribute(EnvironmentAttributes.NullTerminatedStrings,
+                    cast(pointer_t) value_ptr);
         }
+        return ODBCReturn.Error;
     }
 
-    private @property void null_terminated_strings(U : Ternary)(U input)
-    {
-        assert(input != Ternary.unknown);
-        if (this.isAllocated)
-        {
-            this.null_terminated_strings = input ? true : false;
-        }
-    }
-
-    public @property ODBCVersion odbc_version()
+    private ODBCReturn apply_odbc_version()
     {
         if (this.isAllocated)
         {
-            SQLINTEGER value_ptr = SQLINTEGER.init;
-            this.getAttribute(EnvironmentAttributes.ODBCVersion, &value_ptr);
-            return to!ODBCVersion(value_ptr);
+            SQLINTEGER value_ptr = to!SQLINTEGER(this.odbc_version);
+            return this.setAttribute(EnvironmentAttributes.ODBCVersion, cast(pointer_t) value_ptr);
         }
-        return ODBCVersion.init;
-    }
-
-    private @property void odbc_version(ODBCVersion input)
-    {
-        //        assert(input != ODBCVersion.Undefined);
-        SQLINTEGER value_ptr = to!SQLINTEGER(input);
-        this.setAttribute(EnvironmentAttributes.ODBCVersion, cast(pointer_t) value_ptr);
+        return ODBCReturn.Error;
     }
 
     public @property ConnectionPoolMatch connection_pool_match()
     {
         if (this.isAllocated)
         {
-            SQLINTEGER value_ptr = SQLINTEGER.init;
+            SQLINTEGER value_ptr = 0;
             this.getAttribute(EnvironmentAttributes.ConnectionPoolMatch, &value_ptr);
-            return to!ConnectionPoolMatch(value_ptr);
+            this._connection_pool_match = to!ConnectionPoolMatch(value_ptr);
         }
-        return ConnectionPoolMatch.init;
+        return this._connection_pool_match;
     }
 
     private @property void connection_pool_match(ConnectionPoolMatch input)
     {
+        this._connection_pool_match = input;
+        this.apply_connection_pool_match();
+    }
+
+    private ODBCReturn apply_connection_pool_match()
+    {
         if (this.isAllocated)
         {
-            SQLINTEGER value_ptr = to!SQLINTEGER(input);
-            this.setAttribute(EnvironmentAttributes.ConnectionPoolMatch, &value_ptr);
+            SQLINTEGER value_ptr = to!SQLINTEGER(this.connection_pool_match);
+            return this.setAttribute(EnvironmentAttributes.ConnectionPoolMatch, &value_ptr);
         }
+        return ODBCReturn.Error;
+    }
+
+    public @property ConnectionPooling connection_pooling()
+    {
+        if (this.isAllocated)
+        {
+            SQLUINTEGER value_ptr = 0;
+            this.getAttribute(EnvironmentAttributes.ConnectionPooling, &value_ptr);
+            this._connection_pooling = to!ConnectionPooling(value_ptr);
+        }
+        return this._connection_pooling;
+    }
+
+    private @property void connection_pooling(ConnectionPooling input)
+    {
+        this._connection_pooling = input;
+        this.apply_connection_pooling();
+    }
+
+    private ODBCReturn apply_connection_pooling()
+    {
+        if (this.isAllocated)
+        {
+            SQLUINTEGER value_ptr = to!SQLUINTEGER(this.connection_pooling);
+            return this.setAttribute(EnvironmentAttributes.ConnectionPooling, &value_ptr);
+        }
+        return ODBCReturn.Error;
     }
 
     public @property Drivers[] drivers()
@@ -162,6 +209,14 @@ package final class Environment : Handle!(HandleType.Environment,
     }
 }
 
+package Environment environment_factory(bool lowercase = false, bool null_terminated_strings = true,
+        ConnectionPoolMatch connection_pool_match = ConnectionPoolMatch.Default,
+        ConnectionPooling connection_pooling = ConnectionPooling.Default)
+{
+    return new Environment(lowercase, null_terminated_strings,
+            connection_pool_match, connection_pooling);
+}
+
 // Thread global
 //private shared Mutex sharedEnvironmentMutex;
 //private shared Environment sharedEnvironment;
@@ -191,13 +246,13 @@ unittest
 {
     import std.stdio;
 
-    Environment environment = new Environment();
+    Environment environment = environment_factory();
     assert(environment.isAllocated);
 
     writeln("Environment Unit Tests\n");
 
     assert(environment.isAllocated);
-    assert(environment.null_terminated_strings == Ternary.yes);
+    assert(environment.null_terminated_strings);
 
     writefln("Is Allocated: %s", environment.isAllocated);
     writefln("Null Terminated Strings: %s", environment.null_terminated_strings);
@@ -224,6 +279,5 @@ unittest
     writefln("ODBC Version: %s", environment.odbc_version);
     writefln("Connection Pool Match: %s", environment.connection_pool_match);
 
-    assert(environment.null_terminated_strings == Ternary.unknown);
     writeln("\n\n");
 }

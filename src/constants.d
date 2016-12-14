@@ -62,6 +62,7 @@ enum ConnectionPoolMatch : SQLUINTEGER
 {
     StrictMatch = SQL_CP_STRICT_MATCH, // 0UL
     RelaxedMatch = SQL_CP_RELAXED_MATCH, // 1UL
+    Default = StrictMatch
 }
 
 enum ConnectionPooling : SQLUINTEGER
@@ -70,6 +71,7 @@ enum ConnectionPooling : SQLUINTEGER
     OnePerDriver = 1UL, // SQL_CP_ONE_PER_DRIVER, // 1UL
     OnePerEnvironment = 2UL, // SQL_CP_ONE_PER_HENV, // 2UL
     DriverAware,
+    Default = OnePerDriver,
 }
 
 // dfmt off

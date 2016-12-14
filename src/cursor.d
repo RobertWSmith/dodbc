@@ -1,15 +1,11 @@
 module dodbc.cursor;
 
-//import etc.c.odbc.sql;
-
 import dodbc.root;
 import dodbc.connection;
 import dodbc.result;
 
 import std.conv : to;
 import std.string : toStringz;
-
-version (Windows) pragma(lib, "oebc32");
 
 struct Binding
 {
