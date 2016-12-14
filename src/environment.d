@@ -13,38 +13,6 @@ import std.string : fromStringz;
 alias Drivers = Tuple!(string, "description", string, "attributes");
 alias DataSources = Tuple!(string, "server_name", string, "description");
 
-enum EnvironmentAttributes : SQLINTEGER
-{
-    ODBCVersion = SQL_ATTR_ODBC_VERSION,
-    ConnectionPooling = SQL_ATTR_CONNECTION_POOLING,
-    ConnectionPoolMatch = SQL_ATTR_CP_MATCH,
-    NullTerminatedStrings = SQL_ATTR_OUTPUT_NTS,
-    Undefined,
-}
-
-enum ODBCVersion : SQLINTEGER
-{
-    v3 = SQL_OV_ODBC3,
-    v2 = SQL_OV_ODBC2,
-    Undefined,
-}
-
-enum ConnectionPoolMatch : SQLUINTEGER
-{
-    StrictMatch = SQL_CP_STRICT_MATCH,
-    RelaxedMatch = SQL_CP_RELAXED_MATCH,
-    Undefined,
-}
-
-enum ConnectionPooling : SQLUINTEGER
-{
-    Off, // = SQL_CP_OFF,
-    OnePerDriver,
-    OnePerEnvironment,
-    DriverAware,
-    Undefined,
-}
-
 package final class Environment : Handle!(HandleType.Environment,
         SQLGetEnvAttr, SQLSetEnvAttr, EnvironmentAttributes)
 {
@@ -105,7 +73,7 @@ package final class Environment : Handle!(HandleType.Environment,
             this.getAttribute(EnvironmentAttributes.ODBCVersion, &value_ptr);
             return to!ODBCVersion(value_ptr);
         }
-        return ODBCVersion.Undefined;
+        return ODBCVersion.init;
     }
 
     private @property void odbc_version(ODBCVersion input)
@@ -123,12 +91,11 @@ package final class Environment : Handle!(HandleType.Environment,
             this.getAttribute(EnvironmentAttributes.ConnectionPoolMatch, &value_ptr);
             return to!ConnectionPoolMatch(value_ptr);
         }
-        return ConnectionPoolMatch.Undefined;
+        return ConnectionPoolMatch.init;
     }
 
     private @property void connection_pool_match(ConnectionPoolMatch input)
     {
-        assert(input != ConnectionPoolMatch.Undefined);
         if (this.isAllocated)
         {
             SQLINTEGER value_ptr = to!SQLINTEGER(input);

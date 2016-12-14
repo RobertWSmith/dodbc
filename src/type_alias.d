@@ -4,12 +4,13 @@ public import etc.c.odbc.sql;
 public import etc.c.odbc.sqlext;
 public import etc.c.odbc.sqltypes;
 
-import core.stdc.config;
-
 version (Windows) pragma(lib, "odbc32");
+
+import core.stdc.config;
 
 alias SQLULEN = ulong;
 alias SQLLEN = long;
+alias BOOKMARK = SQLULEN;
 
 alias handle_t = void*;
 alias pointer_t = handle_t;

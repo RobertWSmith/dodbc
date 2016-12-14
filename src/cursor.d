@@ -7,37 +7,17 @@ import dodbc.connection;
 import dodbc.result;
 
 import std.conv : to;
+import std.string : toStringz;
 
-enum CursorAttributes : SQLINTEGER
-{
-    AsyncEnable,
-    Concurrency,
-}
+version (Windows) pragma(lib, "oebc32");
 
-enum DataTypes
+struct Binding
 {
-    Undefined,
-}
-
-enum CDataTypes
-{
-    Undefined,
-}
-
-enum Concurrency : SQLULEN
-{
-    ReadOnly, //= SQL_CONCUR_READ_ONLY,
-    Lock, //= SQL_CONCUR_LOCK,
-    RowVersion, // = SQL_CONCUR_ROWVER,
-    Values, //= SQL_CONCUR_VALUES,
-}
-
-enum FreeStatement : SQLUSMALLINT
-{
-    Close = SQL_CLOSE,
-    Drop = SQL_DROP,
-    Unbind = SQL_UNBIND,
-    ResetParams = SQL_RESET_PARAMS,
+    SQLSMALLINT display_size;
+    char[] display_buffer;
+    SQLLEN size_or_null;
+    bool isCharacter;
+    pointer_t data_buffer;
 }
 
 class Cursor : Handle!(HandleType.Statement, SQLGetStmtAttr, SQLSetStmtAttr, CursorAttributes)
@@ -105,30 +85,30 @@ class Cursor : Handle!(HandleType.Statement, SQLGetStmtAttr, SQLSetStmtAttr, Cur
     {
     }
 
-    public @property size_t n_rows()
+    public @property ushort n_params()
     {
-        SQLLEN row_cnt = 0;
-        SQLRowCount(this._handle, &row_cnt);
-        return to!size_t(row_cnt);
+        SQLSMALLINT params = 0;
+        ODBCReturn ret = ret(SQLNumParams(this.handle, &params));
+        return to!ushort(params);
     }
 
-    public @property size_t n_params()
+    public @property ushort n_cols()
     {
-        SQLSMALLINT param_cnt = 0;
-        SQLNumParams(this._handle, &param_cnt);
-        return to!size_t(param_cnt);
+        SQLSMALLINT cols = 0;
+        ODBCReturn ret = ret(SQLNumResultCols(this.handle, &cols));
+        return to!ushort(cols);
     }
 
-    public @property size_t n_cols()
+    public @property ulong n_rows()
     {
-        SQLSMALLINT col_cnt = 0;
-        SQLNumResultCols(this._handle, &col_cnt);
-        return to!size_t(col_cnt);
+        SQLLEN rows = 0;
+        ODBCReturn ret = ret(SQLRowCount(this.handle, &rows));
+        return to!ulong(rows);
     }
 
     public ODBCReturn prepare(string sql)
     {
-        SQLCHAR[] sql_ = toStringz(to!(SQLCHAR[])(sql));
+        SQLCHAR[] sql_ = to!(SQLCHAR[])(toStringz(sql));
         return ret(SQLPrepare(this._handle, sql_.ptr, SQL_NTS));
     }
 
@@ -143,4 +123,34 @@ class Cursor : Handle!(HandleType.Statement, SQLGetStmtAttr, SQLSetStmtAttr, Cur
         output = this.execute();
         return output;
     }
+
+    public ODBCReturn getColumnAttribute(size_t columnNbr,
+            ColumnAttributes fieldIdentifier, pointer_t characterAttributePtr = null,
+            SQLSMALLINT bufferLength = 0, SQLSMALLINT* stringLengthPtr = null,
+            pointer_t numericAttributePtr = null)
+    {
+        ODBCReturn output = ret(SQLColAttribute(this.handle,
+                to!SQLUSMALLINT(columnNbr), to!SQLUSMALLINT(fieldIdentifier),
+                characterAttributePtr, bufferLength, stringLengthPtr, numericAttributePtr));
+        return output;
+    }
+
+    private void allocate_column_binding(size_t column_idx)
+    {
+        Binding column;
+        SQLLEN numeric_attr_ptr = 0;
+        ODBCReturn output = this.getColumnAttribute(column_idx,
+                ColumnAttributes.DisplaySize, null, 0, null, &numeric_attr_ptr);
+        column.display_size = to!SQLSMALLINT(numeric_attr_ptr);
+        numeric_attr_ptr = 0;
+        output = this.getColumnAttribute(column_idx, ColumnAttributes.Type,
+                null, 0, null, &numeric_attr_ptr);
+
+    }
+
+    private void allocate_parameter_binding(size_t param)
+    {
+
+    }
+
 }
