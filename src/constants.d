@@ -1,6 +1,6 @@
 module dodbc.constants;
 
-import dodbc.type_alias;
+import dodbc.types;
 import std.typecons : Tuple;
 
 enum size_t max_dsn_length = SQL_MAX_DSN_LENGTH;
@@ -339,40 +339,50 @@ enum DiagnosticsDynamicFunction
 }
 // dfmt on
 
-enum ODBCDataTypes
+enum SQLType
 {
     Unknown = SQL_UNKNOWN_TYPE, // 0
-    Char = SQL_CHAR, // 1
+
+    TinyInteger = SQL_TINYINT, // (-6)
+    SmallInteger = SQL_SMALLINT, // 5
+    Integer = SQL_INTEGER, // 4
+    BigInteger = SQL_BIGINT, // (-5)
+
     Numeric = SQL_NUMERIC, // 2
     Decimal = SQL_DECIMAL, // 3
-    Integer = SQL_INTEGER, // 4
-    SmallInteger = SQL_SMALLINT, // 5
+
     Float = SQL_FLOAT, // 6
-    Real = SQL_REAL, // 7
     Double = SQL_DOUBLE, // 8
-    Datetime = SQL_DATETIME, // 9
+    Real = SQL_REAL, // 7
+
+    Char = SQL_CHAR, // 1
     Varchar = SQL_VARCHAR, // 12
-    DateType = SQL_TYPE_DATE, // 91
-    TimeType = SQL_TYPE_TIME, // 92
-    TimestampType = SQL_TYPE_TIMESTAMP, // 93
-    Date = SQL_DATE, // 9
-    Interval = SQL_INTERVAL, // 10
-    Time = SQL_TIME, // 10
-    Timestamp = SQL_TIMESTAMP, // 11
     LongVarchar = SQL_LONGVARCHAR, // (-1)
+    Unicode = SQL_UNICODE, //SQL_WCHAR, //SQL_UNICODE
+    UnicodeVarchar = SQL_UNICODE_VARCHAR, //SQL_WVARCHAR, //SQL_UNICODE_VARCHAR
+    UnicodeLongvarchar = SQL_UNICODE_LONGVARCHAR, //SQL_WLONGVARCHAR, //SQL_UNICODE_LONGVARCHAR
+    UnicodeChar = SQL_UNICODE_CHAR, //SQL_WCHAR, //SQL_UNICODE_CHAR
+
+    // Date = SQL_DATE, // 9
+    // Time = SQL_TIME, // 10
+    // Datetime = SQL_DATETIME, // 9
+    // Timestamp = SQL_TIMESTAMP, // 11
+    Date = SQL_TYPE_DATE, // 91
+    Time = SQL_TYPE_TIME, // 92
+    Timestamp = SQL_TYPE_TIMESTAMP, // 93
+
+    Interval = SQL_INTERVAL, // 10
+
     Binary = SQL_BINARY, // (-2)
     Varbinary = SQL_VARBINARY, // (-3)
     LongVarbinary = SQL_LONGVARBINARY, // (-4)
-    Bigint = SQL_BIGINT, // (-5)
-    Tinyint = SQL_TINYINT, // (-6)
+
     Bit = SQL_BIT, // (-7)
     GUID = SQL_GUID, // (-11)
-    Unicode = SQL_UNICODE, // SQL_WCHAR
-    UnicodeVarchar = SQL_UNICODE_VARCHAR, // SQL_WVARCHAR
-    UnicodeLongvarchar = SQL_UNICODE_LONGVARCHAR, // SQL_WLONGVARCHAR
-    UnicodeChar = SQL_UNICODE_CHAR, // SQL_WCHAR
     Null = SQL_TYPE_NULL,
 }
+
+//alias ODBCDataType = SQLType;
 
 version (X86)
 {
@@ -383,7 +393,7 @@ else
     private enum p_Bookmark = SQL_C_UBIGINT; // SQL_C_UBIGINT,
 }
 
-enum LocalDataTypes
+enum LocalType
 {
     Default = SQL_C_DEFAULT, // 99
     GUID = SQL_C_GUID, // SQL_GUID
@@ -430,6 +440,16 @@ enum LocalDataTypes
     Varbookmark = SQL_C_BINARY,
 }
 
+//alias LocalDataType = LocalType;
+
+//struct Buffer(SQLType st, LocalType lt)
+//{
+//    public enum sql_enum = st;
+//    public enum local_enum = lt;
+//    public alias buffer_type = ubyte[];
+//    public alias local_type = ubyte[];
+//}
+
 enum IntervalType
 {
     Year = SQL_INTERVAL_YEAR, // 101
@@ -445,11 +465,6 @@ enum IntervalType
     HourToMinute = SQL_INTERVAL_HOUR_TO_MINUTE, // 111
     HourToSecond = SQL_INTERVAL_HOUR_TO_SECOND, // 112
     MinuteToSecond = SQL_INTERVAL_MINUTE_TO_SECOND, // 113
-}
-
-enum CDataTypes
-{
-    Undefined,
 }
 
 enum Concurrency : SQLULEN
@@ -819,13 +834,21 @@ enum Updatable
     ReadWriteUnknown = SQL_ATTR_READWRITE_UNKNOWN, // 2
 }
 
-enum Searchable // SQLColAttributes & SQLGetInfo
+enum Searchable : SQLSMALLINT
 {
-    Unsearchable = SQL_UNSEARCHABLE, // 0
-    LikeOnly = SQL_LIKE_ONLY, // 1
-    AllExceptLike = SQL_ALL_EXCEPT_LIKE, // 2
+    Unsearchable = SQL_PRED_NONE, // SQL_UNSEARCHABLE // 0
+    LikeOnly = SQL_PRED_CHAR, // SQL_LIKE_ONLY // 1
+    AllExceptLike = SQL_PRED_BASIC, // SQL_ALL_EXCEPT_LIKE // 2
     Searchable = SQL_SEARCHABLE, // 3
 }
+
+//enum Searchable // SQLColAttributes & SQLGetInfo
+//{
+//    Unsearchable = SQL_UNSEARCHABLE, // 0
+//    LikeOnly = SQL_LIKE_ONLY, // 1
+//    AllExceptLike = SQL_ALL_EXCEPT_LIKE, // 2
+//    Searchable = SQL_SEARCHABLE, // 3
+//}
 
 enum SetPosition
 {
@@ -890,4 +913,25 @@ enum ExtendedFetch
 
     Proceed = SQL_ROW_PROCEED, // 0
     Ignore = SQL_ROW_IGNORE, // 1
+}
+
+enum SQLNullable : SQLSMALLINT
+{
+    NoNulls = SQL_NO_NULLS,
+    Nullable = SQL_NULLABLE,
+    Unknown = SQL_NULLABLE_UNKNOWN,
+}
+
+/// Statements.statistics - unique argument
+enum StatisticsIndexType : SQLUSMALLINT
+{
+    All = SQL_INDEX_ALL,
+    Unique = SQL_INDEX_UNIQUE,
+}
+
+/// Statements.statistics - cardinality_pages argument
+enum StatisticsCardinalityPages : SQLUSMALLINT
+{
+    Quick = SQL_QUICK,
+    Ensure = SQL_ENSURE,
 }

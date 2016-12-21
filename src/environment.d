@@ -1,9 +1,103 @@
 module dodbc.environment;
 
+import dodbc.types;
+import dodbc.constants;
 import dodbc.root;
 
+static import uuid = std.uuid;
 import std.conv : to;
 import std.string : fromStringz;
+
+// shared Environment variable
+import std.concurrency;
+import core.atomic;
+import core.sync.mutex : Mutex;
+
+shared static this()
+{
+    sharedEnvironmentMutex = new Mutex;
+}
+
+private __gshared Mutex sharedEnvironmentMutex;
+private shared Environment sharedEnvironmentObject;
+
+// returns the default global environment
+private @property Environment defaultSharedEnvironmentImpl() @trusted
+{
+    synchronized (sharedEnvironmentMutex)
+    {
+        if (sharedEnvironmentObject is null)
+            sharedEnvironmentObject = cast(shared) environment_factory();
+    }
+    return cast(Environment) sharedEnvironmentObject;
+}
+
+public @property Environment sharedEnvironment()
+{
+    static auto trustedLoad(ref shared Environment env) @trusted
+    {
+        return atomicLoad!(MemoryOrder.acq)(env);
+    }
+
+    // if we have set up our own environment use that
+    if (auto env = trustedLoad(sharedEnvironmentObject))
+    {
+        return env;
+    }
+    else
+    {
+        return defaultSharedEnvironmentImpl;
+    }
+}
+
+public @property void sharedEnvironment(Environment input) @trusted
+{
+    atomicStore!(MemoryOrder.rel)(sharedEnvironmentObject, cast(shared) input);
+}
+
+unittest
+{
+    import std.compiler;
+
+    writefln("Compiler Name:           %s", name);
+    writefln("Compiler Vendor:         %s", vendor);
+    writefln("D Major Version:         %s", D_major);
+    writefln("Version:                 %s.%s", version_major, version_minor);
+    writeln();
+}
+
+unittest
+{
+    import std.system;
+
+    writefln("Operating System:        %s", os);
+    writefln("Endian:                  %s", endian);
+    writeln();
+}
+
+unittest
+{
+    import core.cpuid;
+
+    CacheInfo ci;
+
+    writefln("Cache Size (kb):         %s", ci.size);
+    writefln("Cache Miss Line Size:    %s", ci.lineSize);
+
+    writefln("Processor Vendor:        %s", vendor);
+    writefln("Processor:               %s", processor);
+    writefln("64-bit?:                 %s", isX86_64);
+    writefln("Hyper Threading?:        %s", hyperThreading);
+    writefln("Threads per CPU:         %s", threadsPerCPU);
+    writefln("Cores per CPU:           %s", coresPerCPU);
+    writefln("Cache Levels:            %s", cacheLevels);
+
+    foreach (size_t ix, CacheInfo cache; dataCaches())
+        if (ix < cacheLevels)
+            writefln("Cache %s:                 %s", ix, cache);
+
+    writeln();
+}
 
 struct Drivers
 {
@@ -17,24 +111,24 @@ struct DataSources
     string description;
 }
 
-package final class Environment : Handle!(HandleType.Environment,
-        SQLGetEnvAttr, SQLSetEnvAttr, EnvironmentAttributes)
+// manages ODBC environments, accessed via `environment_factory` function 
+final class Environment : EnvironmentHandle
 {
-    public enum ODBCVersion odbc_version = ODBCVersion.v3_80;
+    public static ODBCVersion odbc_version;
     private bool _lowercase;
     private bool _null_terminated_strings;
     private ConnectionPoolMatch _connection_pool_match;
     private ConnectionPooling _connection_pooling;
 
-    package this(bool _lowercase, bool _null_terminated_strings,
+    package this(ODBCVersion odbc_version, bool _lowercase, bool _null_terminated_strings,
             ConnectionPoolMatch _connection_pool_match, ConnectionPooling _connection_pooling)
     {
-        super();
+        super(generateUUID("Environment"));
+        this.odbc_version = odbc_version;
         this.lowercase = _lowercase;
-        this.null_terminated_strings = _null_terminated_strings;
-        this.connection_pool_match = _connection_pool_match;
-        this.connection_pooling = _connection_pooling;
-
+        // this.null_terminated_strings = _null_terminated_strings;
+        // this.connection_pool_match = _connection_pool_match;
+        // this.connection_pooling = _connection_pooling;
         this.allocate();
     }
 
@@ -48,14 +142,15 @@ package final class Environment : Handle!(HandleType.Environment,
         this._lowercase = input;
     }
 
-    public override ODBCReturn allocate(handle_t input = SQL_NULL_HANDLE)
+    public void allocate()
     {
-        ODBCReturn output = super.allocate(input);
+        this.free();
+        super.allocate(SQL_NULL_HANDLE);
+
         this.apply_odbc_version();
-        this.apply_null_terminated_strings();
-        this.apply_connection_pool_match();
-        this.apply_connection_pooling();
-        return output;
+        // this.apply_null_terminated_strings();
+        // this.apply_connection_pool_match();
+        // this.apply_connection_pooling();
     }
 
     public @property bool null_terminated_strings()
@@ -69,31 +164,27 @@ package final class Environment : Handle!(HandleType.Environment,
         return this._null_terminated_strings;
     }
 
-    private @property void null_terminated_strings(bool input)
-    {
-        this._null_terminated_strings = input;
-        this.apply_null_terminated_strings();
-    }
+    // private @property void null_terminated_strings(bool input)
+    // {
+    // this._null_terminated_strings = input;
+    // this.apply_null_terminated_strings();
+    // }
 
-    private ODBCReturn apply_null_terminated_strings()
-    {
-        if (this.isAllocated)
-        {
-            SQLINTEGER value_ptr = to!SQLINTEGER(this.null_terminated_strings ? SQL_TRUE : SQL_FALSE);
-            return this.setAttribute(EnvironmentAttributes.NullTerminatedStrings,
-                    cast(pointer_t) value_ptr);
-        }
-        return ODBCReturn.Error;
-    }
+    // private ODBCReturn apply_null_terminated_strings()
+    // {
+    // if (this.isAllocated)
+    // {
+    // SQLINTEGER value_ptr = to!SQLINTEGER(this.null_terminated_strings ? SQL_TRUE : SQL_FALSE);
+    // return this.setAttribute(EnvironmentAttributes.NullTerminatedStrings,
+    // cast(pointer_t) value_ptr);
+    // }
+    // return ODBCReturn.Error;
+    // }
 
-    private ODBCReturn apply_odbc_version()
+    private void apply_odbc_version()
     {
-        if (this.isAllocated)
-        {
-            SQLINTEGER value_ptr = to!SQLINTEGER(this.odbc_version);
-            return this.setAttribute(EnvironmentAttributes.ODBCVersion, cast(pointer_t) value_ptr);
-        }
-        return ODBCReturn.Error;
+        SQLINTEGER value_ptr = to!SQLINTEGER(this.odbc_version);
+        this.setAttribute(EnvironmentAttributes.ODBCVersion, cast(pointer_t) value_ptr);
     }
 
     public @property ConnectionPoolMatch connection_pool_match()
@@ -107,21 +198,21 @@ package final class Environment : Handle!(HandleType.Environment,
         return this._connection_pool_match;
     }
 
-    private @property void connection_pool_match(ConnectionPoolMatch input)
-    {
-        this._connection_pool_match = input;
-        this.apply_connection_pool_match();
-    }
+    // private @property void connection_pool_match(ConnectionPoolMatch input)
+    // {
+    // this._connection_pool_match = input;
+    // this.apply_connection_pool_match();
+    // }
 
-    private ODBCReturn apply_connection_pool_match()
-    {
-        if (this.isAllocated)
-        {
-            SQLINTEGER value_ptr = to!SQLINTEGER(this.connection_pool_match);
-            return this.setAttribute(EnvironmentAttributes.ConnectionPoolMatch, &value_ptr);
-        }
-        return ODBCReturn.Error;
-    }
+    // private ODBCReturn apply_connection_pool_match()
+    // {
+    // if (this.isAllocated)
+    // {
+    // SQLINTEGER value_ptr = to!SQLINTEGER(this.connection_pool_match);
+    // return this.setAttribute(EnvironmentAttributes.ConnectionPoolMatch, &value_ptr);
+    // }
+    // return ODBCReturn.Error;
+    // }
 
     public @property ConnectionPooling connection_pooling()
     {
@@ -134,28 +225,29 @@ package final class Environment : Handle!(HandleType.Environment,
         return this._connection_pooling;
     }
 
-    private @property void connection_pooling(ConnectionPooling input)
-    {
-        this._connection_pooling = input;
-        this.apply_connection_pooling();
-    }
+    // private @property void connection_pooling(ConnectionPooling input)
+    // {
+    // this._connection_pooling = input;
+    // this.apply_connection_pooling();
+    // }
 
-    private ODBCReturn apply_connection_pooling()
-    {
-        if (this.isAllocated)
-        {
-            SQLUINTEGER value_ptr = to!SQLUINTEGER(this.connection_pooling);
-            return this.setAttribute(EnvironmentAttributes.ConnectionPooling, &value_ptr);
-        }
-        return ODBCReturn.Error;
-    }
+    // private ODBCReturn apply_connection_pooling()
+    // {
+    // if (this.isAllocated)
+    // {
+    // SQLUINTEGER value_ptr = to!SQLUINTEGER(this.connection_pooling);
+    // return this.setAttribute(EnvironmentAttributes.ConnectionPooling, &value_ptr);
+    // }
+    // return ODBCReturn.Error;
+    // }
 
     public @property Drivers[] drivers()
     {
+        alias sql_func = SQLDrivers;
         SQLUSMALLINT direction = SQL_FETCH_FIRST;
         SQLCHAR[SQL_MAX_MESSAGE_LENGTH + 1] description;
         SQLCHAR[2048 + 1] attributes;
-        ODBCReturn ret = ODBCReturn.Success;
+        this.sqlreturn = ODBCReturn.Success;
         Drivers[] output;
 
         while (true)
@@ -165,10 +257,10 @@ package final class Environment : Handle!(HandleType.Environment,
             description[] = '\0';
             attributes[] = '\0';
 
-            ret = to!ODBCReturn(SQLDrivers(this.handle, direction, description.ptr, buffer_length1,
-                    &descr_len_ptr, attributes.ptr, buffer_length2, &attr_len_ptr));
+            this.sqlreturn = sql_func(this.handle, direction, description.ptr, buffer_length1,
+                    &descr_len_ptr, attributes.ptr, buffer_length2, &attr_len_ptr);
 
-            if (ret == ODBCReturn.NoData)
+            if (this.sqlreturn == ODBCReturn.NoData)
                 break;
 
             direction = SQL_FETCH_NEXT;
@@ -181,10 +273,11 @@ package final class Environment : Handle!(HandleType.Environment,
 
     public @property DataSources[] data_sources()
     {
+        alias sql_func = SQLDataSources;
         SQLUSMALLINT direction = SQL_FETCH_FIRST;
         SQLCHAR[SQL_MAX_MESSAGE_LENGTH + 1] server_name;
         SQLCHAR[2048 + 1] description;
-        ODBCReturn ret = ODBCReturn.Success;
+        this.sqlreturn = ODBCReturn.Success;
         DataSources[] output;
 
         while (true)
@@ -194,10 +287,10 @@ package final class Environment : Handle!(HandleType.Environment,
             SQLSMALLINT buffer_length1 = server_name.length - 1, server_name_len_ptr = 0;
             SQLSMALLINT buffer_length2 = description.length - 1, descr_len_ptr = 0;
 
-            ret = to!ODBCReturn(SQLDataSources(this.handle, direction, server_name.ptr, buffer_length1,
-                    &server_name_len_ptr, description.ptr, buffer_length2, &descr_len_ptr));
+            this.sqlreturn = sql_func(this.handle, direction, server_name.ptr, buffer_length1,
+                    &server_name_len_ptr, description.ptr, buffer_length2, &descr_len_ptr);
 
-            if (ret == ODBCReturn.NoData)
+            if (this.return_code == ODBCReturn.NoData)
                 break;
 
             direction = SQL_FETCH_NEXT;
@@ -209,75 +302,71 @@ package final class Environment : Handle!(HandleType.Environment,
     }
 }
 
-package Environment environment_factory(bool lowercase = false, bool null_terminated_strings = true,
+package Environment environment_factory(ODBCVersion odbc_version = ODBCVersion.v3,
+        bool lowercase = false, bool null_terminated_strings = true,
         ConnectionPoolMatch connection_pool_match = ConnectionPoolMatch.Default,
         ConnectionPooling connection_pooling = ConnectionPooling.Default)
 {
-    return new Environment(lowercase, null_terminated_strings,
-            connection_pool_match, connection_pooling);
+    Environment env = new Environment(odbc_version, lowercase,
+            null_terminated_strings, connection_pool_match, connection_pooling);
+    return env;
 }
 
 // Thread global
-//private shared Mutex sharedEnvironmentMutex;
-//private shared Environment sharedEnvironment;
-//
-//public @property Environment environment() @safe
-//{
-//    synchronized (sharedEnvironmentMutex)
-//    {
-//        if (sharedEnvironment is null)
-//            sharedEnvironment = cast(shared Environment) new Environment(ODBCVersion.v3);
-//    }
-//
-//    // Workaround for atomics not allowed in @safe code
-//    auto trustedLoad(T)(ref shared T value) @trusted
-//    {
-//        return atomicLoad!(MemoryOrder.acq)(value);
-//    }
-//
-//    auto env = trustedLoad(sharedEnvironment);
-//
-//    if (!env.handle is SQL_NULL_HANDLE)
-//        env.allocate();
-//    return env;
-//}
+// private shared Mutex sharedEnvironmentMutex;
+// private shared Environment sharedEnvironment;
+// 
+// public @property Environment environment() @safe
+// {
+// synchronized (sharedEnvironmentMutex)
+// {
+// if (sharedEnvironment is null)
+// sharedEnvironment = cast(shared Environment) new Environment(ODBCVersion.v3);
+// }
+// 
+// // Workaround for atomics not allowed in @safe code
+// auto trustedLoad(T)(ref shared T value) @trusted
+// {
+// return atomicLoad!(MemoryOrder.acq)(value);
+// }
+// 
+// auto env = trustedLoad(sharedEnvironment);
+// 
+// if (!env.handle is SQL_NULL_HANDLE)
+// env.allocate();
+// return env;
+// }
 
 unittest
 {
-    import std.stdio;
+    writeln("\n\nBegin Environment Unit Tests\n");
+    assert(sharedEnvironment.isAllocated);
+    assert(sharedEnvironment.null_terminated_strings);
 
-    Environment environment = environment_factory();
-    assert(environment.isAllocated);
-
-    writeln("Environment Unit Tests\n");
-
-    assert(environment.isAllocated);
-    assert(environment.null_terminated_strings);
-
-    writefln("Is Allocated: %s", environment.isAllocated);
-    writefln("Null Terminated Strings: %s", environment.null_terminated_strings);
-    writefln("ODBC Version: %s", environment.odbc_version);
-    writefln("Connection Pool Match: %s", environment.connection_pool_match);
+    writefln("Is Allocated: %s", sharedEnvironment.isAllocated);
+    writefln("Null Terminated Strings: %s", sharedEnvironment.null_terminated_strings);
+    writefln("ODBC Version: %s", sharedEnvironment.odbc_version);
+    writefln("Connection Pool Match: %s", sharedEnvironment.connection_pool_match);
 
     writeln("\n");
 
-    foreach (drv; environment.drivers)
+    foreach (drv; sharedEnvironment.drivers)
         writefln("Description: %s\tAttributes: %s", drv.description, drv.attributes);
 
     writeln("\n");
 
-    foreach (ds; environment.data_sources)
+    foreach (ds; sharedEnvironment.data_sources)
         writefln("Server Name: %s\tDescription: %s", ds.server_name, ds.description);
 
     writeln("\n");
 
-    environment.free();
-    assert(!environment.isAllocated);
+    sharedEnvironment.free();
+    assert(!sharedEnvironment.isAllocated);
 
-    writefln("Is Allocated: %s", environment.isAllocated);
-    writefln("Null Terminated Strings: %s", environment.null_terminated_strings);
-    writefln("ODBC Version: %s", environment.odbc_version);
-    writefln("Connection Pool Match: %s", environment.connection_pool_match);
+    writefln("Is Allocated: %s", sharedEnvironment.isAllocated);
+    writefln("Null Terminated Strings: %s", sharedEnvironment.null_terminated_strings);
+    writefln("ODBC Version: %s", sharedEnvironment.odbc_version);
+    writefln("Connection Pool Match: %s", sharedEnvironment.connection_pool_match);
 
-    writeln("\n\n");
+    writeln("\nEnd Environment Unit Tests\n\n");
 }
