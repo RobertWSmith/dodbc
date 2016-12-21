@@ -10,12 +10,6 @@ import std.string; // : format, strip, fromStringz, toStringz;
 import std.traits; // : isImplicitlyConvertible, hasMember;
 import std.typecons; // : Ternary;
 
-import std.array;
-
-//import std.concurrency;
-//import core.atomic;
-//import core.sync.mutex : Mutex;
-
 debug
 {
     import std.traits;
@@ -39,9 +33,9 @@ package uuid.UUID generateUUID(string name = "")
     return uuid.md5UUID(nm, uuid.oidNamespace);
 }
 
-package SQLReturn ret(SQLRETURN rc)
+package ODBCReturn ret(SQLRETURN rc)
 {
-    return to!SQLReturn(rc);
+    return to!ODBCReturn(rc);
 }
 
 package bool isAllocated(handle_t handle)
@@ -200,38 +194,25 @@ unittest
 abstract class Root(HandleType _ht) : Identified
 {
     debug alias kwarg_tuple = Tuple!(string, "key", Variant, "value");
-    debug alias kwarg_list = kwarg_tuple[];
+    debug private string _sql_function;
+    debug private kwarg_tuple[] _sql_kwargs;
 
+    package handle_t _handle;
     public enum HandleType handle_enum = _ht;
     public enum SQLSMALLINT handle_type = to!SQLSMALLINT(_ht);
-
-    private handle_t _handle;
-    private SQLReturn _return_code;
-    debug private string _sql_function;
-    debug private kwarg_list _sql_kwargs;
-
-    // package shared(handle_t) _handle;
-    // private shared(SQLReturn) _return_code;
-    // private __gshared Mutex sharedMutex;
-    // debug private shared(string) _sql_function;
-    // debug private shared(kwarg_list) _sql_kwargs;
-
-    // shared static this()
-    // {
-    //     sharedMutex = new Mutex;
-    // }
+    private ODBCReturn _return_code;
 
     this(uuid.UUID id = generateUUID(format("root.%s", this.handle_enum)))
     {
         super(id);
 
         this.nullify();
-        this._return_code = SQLReturn.Success;
+        this._return_code = ODBCReturn.Success;
 
         debug
         {
-            this.sql_function = "ClassInitialization";
-            this.sql_kwargs = kwarg_tuple[].init;
+            this._sql_function = "ClassInitialization";
+            this._sql_kwargs = kwarg_tuple[].init;
             this.debugger();
         }
     }
@@ -241,45 +222,52 @@ abstract class Root(HandleType _ht) : Identified
         this.free();
     }
 
-    public final @property void return_code(SQLReturn input)
+    public final @property void return_code(ODBCReturn input)
     {
-        this._return_code = input;
-        // atomicStore!(MemoryOrder.rel)(this._return_code, to!(shared(SQLReturn))(input));
+        this._return_code = ret(input);
     }
 
-    public final @property SQLReturn return_code()
+    public final @property ODBCReturn return_code()
     {
         return this._return_code;
-        // return to!(SQLReturn)(atomicLoad!(MemoryOrder.acq)(this._return_code));
     }
 
     public final @property void sqlreturn(SQLRETURN input)
     {
-        this.return_code = to!SQLReturn(input);
+        this.return_code = to!ODBCReturn(input);
     }
 
     public final @property SQLRETURN sqlreturn()
     {
-        return to!SQLRETURN(this.return_code);
+        return to!SQLRETURN(this._return_code);
     }
 
     public final @property immutable(bool) isAllocated()
     {
         return ((this.handle).isAllocated);
-        // return to!(immutable(bool))((this.handle).isAllocated);
     }
 
     public final @property handle_t handle()
     {
         return this._handle;
-        // return cast(handle_t) atomicLoad!(MemoryOrder.acq)(this._handle);
     }
 
     private final @property void handle(handle_t input)
     {
         this._handle = input;
-        // atomicStore!(MemoryOrder.rel)(this._handle, cast(shared) input);
     }
+
+    //    alias sql_func = SQLDescribeCol;
+    //    debug
+    //    {
+    //        this.sql_function = fullyQualifiedName!sql_func;
+    //        this.insert_kwarg("columnNbr", columnNbr);
+    //    }
+    //
+    //    this.sqlreturn = SQLDescribeCol(this.handle, columnNbr, columnNamePtr, bufferLength,
+    //            nameLengthPtr, dataTypePtr, columnSizePtr, decimalDigitsPtr, nullablePtr);
+    //
+    //    debug this.debugger();
 
     public void allocate(handle_t prior = SQL_NULL_HANDLE)
     {
@@ -287,11 +275,11 @@ abstract class Root(HandleType _ht) : Identified
         debug
         {
             this.sql_function = fullyQualifiedName!sql_func;
-            this.insert_kwarg("handle_type", to!HandleType(this.handle_enum));
+            this.insert_kwarg("handle_type", this.handle_enum);
         }
 
         this.free();
-        this.sqlreturn = sql_func(this.handle_type, prior, &this._handle);
+        this.sqlreturn = sql_func(this.handle_type, prior, &(this._handle));
 
         debug this.debugger();
     }
@@ -306,60 +294,47 @@ abstract class Root(HandleType _ht) : Identified
 
         if (this.isAllocated)
         {
-            this.sqlreturn = sql_func(handle_type, this._handle);
+            this.sqlreturn = sql_func(handle_type, (this._handle));
             debug this.debugger();
         }
+
         this.nullify();
     }
 
     private void nullify()
     {
-        this.handle = to!(handle_t)(SQL_NULL_HANDLE);
-        this.return_code = SQLReturn.Success;
-        debug this.clear_debug_values();
+        this.handle = SQL_NULL_HANDLE;
+        this._return_code = ODBCReturn.Success;
     }
 
     debug public @property string sql_function()
     {
         return this._sql_function;
-        // return to!(string)(atomicLoad!(MemoryOrder.acq)(this._sql_function));
     }
 
     debug public @property void sql_function(string input)
     {
         this.clear_debug_values();
         this._sql_function = input;
-        // atomicStore!(MemoryOrder.rel)(this._sql_function, to!(shared(string))(input));
-    }
-
-    debug public @property kwarg_list sql_kwargs()
-    {
-        return this._sql_kwargs;
-        // return cast(kwarg_list) atomicLoad!(MemoryOrder.acq)(this._sql_kwargs);
-    }
-
-    debug private @property void sql_kwargs(kwarg_list input)
-    {
-        this._sql_kwargs = input;
-        // atomicStore!(MemoryOrder.rel)(this._sql_kwargs, cast(shared) input);
     }
 
     debug private void clear_debug_values()
     {
-        this.sql_function = "";
-        this.sql_kwargs = kwarg_list.init;
+        this._sql_function = "";
+        this._sql_kwargs.length = 0;
     }
 
     debug public void insert_kwarg(T)(string key, T value)
     {
-        // Variant v = value;
-        // using mutex to append array element, not good as an atomic operation
-        this._sql_kwargs ~= kwarg_tuple(key, Variant(value));
+        Variant v = value;
+        kwarg_tuple kw = kwarg_tuple(key, v);
+        this._sql_kwargs ~= kw;
     }
 
     debug public @property string sql_function_diagnostic_call()
     {
-        return sql_call_to_string(this.sql_function, this.sql_kwargs);
+        string output = sql_call_to_string(this._sql_function, this._sql_kwargs);
+        return output;
     }
 
     debug private immutable(Char)[] sql_call_to_string(Char)(string func, kwarg_tuple[] tpl,
@@ -373,9 +348,9 @@ abstract class Root(HandleType _ht) : Identified
             immutable(Char)[] assign_sep = " = ", immutable(Char)[] value_sep = ", ",
             immutable(Char)[] open_quotechar = "[", immutable(Char)[] close_quotechar = "]")
     {
-        alias String = immutable(Char)[];
         if (input.length > 0)
         {
+            alias String = immutable(Char)[];
 
             // 1 = key
             // 2 = value
@@ -402,26 +377,25 @@ abstract class Root(HandleType _ht) : Identified
         }
         else
         {
-            return to!String("");
+            return "";
         }
     }
 
     debug package final void debugger()
     {
         writefln("UUID: %s\tHandle Type: %s\n\tFunction: %s\n\tArguments: %s\n\tReturn: %s", this.id, this.handle_enum,
-                this.sql_function, this.kwarg_tuple_to_string(this.sql_kwargs), this.return_code);
-        if (!SQL_SUCCEEDED(this.sqlreturn) || this.return_code == SQLReturn.SuccessWithInfo)
+                this.sql_function, this.kwarg_tuple_to_string(this._sql_kwargs), this.return_code);
+        if (!SQL_SUCCEEDED(this.sqlreturn) || this.return_code == ODBCReturn.SuccessWithInfo)
             foreach (d; this.diagnose())
                 writeln(d);
     }
 
     debug package final string[] diagnostics()
     {
-        Diagnostics[] diag = this.diagnose();
-        string[] output = new string[(diag.length + 1)];
-        output[0] = this.sql_function_diagnostic_call();
-        foreach (i, d; diag)
-            output[i + 1] = d.toString();
+        string[] output;
+        output = [this.sql_function_diagnostic_call,];
+        foreach (d; this.diagnose())
+            output ~= d.toString();
         return output;
     }
 
@@ -436,25 +410,25 @@ alias RootConnection = Root!(HandleType.Connection);
 alias RootStatement = Root!(HandleType.Statement);
 alias RootDescription = Root!(HandleType.Description);
 
-//unittest
-//{
-//    assert(isAbstractClass!(Root!(HandleType.Environment)));
-//    assert(isAbstractClass!(Root!(HandleType.Connection)));
-//    assert(isAbstractClass!(Root!(HandleType.Statement)));
-//    assert(isAbstractClass!(Root!(HandleType.Description)));
-//
-//    assert(isAbstractClass!RootEnvironment);
-//    assert(isAbstractClass!RootConnection);
-//    assert(isAbstractClass!RootStatement);
-//    assert(isAbstractClass!RootDescription);
-//
-//    assert(hasMember!(RootEnvironment, "id"));
-//    assert(hasMember!(RootConnection, "id"));
-//    assert(hasMember!(RootStatement, "id"));
-//    assert(hasMember!(RootDescription, "id"));
-//}
+unittest
+{
+    assert(isAbstractClass!(Root!(HandleType.Environment)));
+    assert(isAbstractClass!(Root!(HandleType.Connection)));
+    assert(isAbstractClass!(Root!(HandleType.Statement)));
+    assert(isAbstractClass!(Root!(HandleType.Description)));
 
-abstract class Handle(HandleType ht, alias _getAttr, alias _setAttr, alias _attrEnum) : Root!(ht)
+    assert(isAbstractClass!RootEnvironment);
+    assert(isAbstractClass!RootConnection);
+    assert(isAbstractClass!RootStatement);
+    assert(isAbstractClass!RootDescription);
+
+    assert(hasMember!(RootEnvironment, "id"));
+    assert(hasMember!(RootConnection, "id"));
+    assert(hasMember!(RootStatement, "id"));
+    assert(hasMember!(RootDescription, "id"));
+}
+
+abstract class Handle(HandleType _ht, alias _getAttr, alias _setAttr, alias _attrEnum) : Root!(_ht)
 {
     public alias GetAttribute = _getAttr;
     public alias SetAttribute = _setAttr;

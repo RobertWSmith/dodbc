@@ -6,7 +6,6 @@ import std.typecons : Tuple;
 enum size_t max_dsn_length = SQL_MAX_DSN_LENGTH;
 enum size_t max_option_string_length = SQL_MAX_OPTION_STRING_LENGTH;
 
-/// SQL Defaults for various values
 enum Defaults : size_t
 {
     login_timeout = SQL_LOGIN_TIMEOUT_DEFAULT,
@@ -25,8 +24,7 @@ enum size_t default_rowset_size = SQL_ROWSET_SIZE_DEFAULT;
 enum size_t default_keyset_size = SQL_KEYSET_SIZE_DEFAULT;
 // enum string default_trace_file = SQL_OPT_TRACE_FILE_DEFAULT;
 
-/// SQL Return values / codes
-enum SQLReturn : SQLRETURN
+enum ODBCReturn : SQLRETURN
 {
     Success = SQL_SUCCESS,
     SuccessWithInfo = SQL_SUCCESS_WITH_INFO,

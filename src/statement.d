@@ -709,32 +709,32 @@ class Prepared : Identified
     }
 }
 
-//unittest
-//{
-//    writeln("Statement Tests:\n");
-//    // DSN is set up as a file on local directory: C:/testsqlite.sqlite
-//    //    string conn_str = "Driver={SQLite3 ODBC Driver};Database=C:\\testsqlite.sqlite;";
-//    string conn_str = "Driver={SQLite3 ODBC Driver};Database=:memory:;";
-//    Connection conn = connect(conn_str);
-//    writeln(typeid(conn));
-//    writeln(conn_str);
-//
-//    string query = "SELECT 1;";
-//    Statement stmt = conn.statement();
-//    writeln(typeid(stmt));
-//    writeln(query);
-//    Prepared prepped = stmt.prepare(query);
-//    writeln(typeid(prepped));
-//
-//    writefln("Number of Columns: %s", prepped.n_cols);
-//    writefln("Number of Parameters: %s", prepped.n_params);
-//
-//    prepped.describeColumns();
-//    prepped.execute();
-//
-//    writeln("End Statement Tests: \n\n");
-//}
+unittest
+{
+    writeln("Statement Tests:\n");
+    // DSN is set up as a file on local directory: C:/testsqlite.sqlite
+    //    string conn_str = "Driver={SQLite3 ODBC Driver};Database=C:\\testsqlite.sqlite;";
+    string conn_str = "Driver={SQLite3 ODBC Driver};Database=:memory:;";
+    Connection conn = connect(conn_str);
+    writeln(typeid(conn));
+    writeln(conn_str);
 
+    string query = "SELECT 1;";
+    Statement stmt = conn.statement();
+    writeln(typeid(stmt));
+    writeln(query);
+    Prepared prepped = stmt.prepare(query);
+    writeln(typeid(prepped));
+
+    writefln("Number of Columns: %s", prepped.n_cols);
+    writefln("Number of Parameters: %s", prepped.n_params);
+
+    prepped.describeColumns();
+    prepped.execute();
+
+    writeln("End Statement Tests: \n\n");
+}
+//
 //interface ColumnParameter
 //{
 //    public @property ushort number();
