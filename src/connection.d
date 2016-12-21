@@ -38,9 +38,9 @@ class Connection : ConnectionHandle
     public void allocate()
     {
         this.free();
-        if (!sharedEnvironment.isAllocated)
-            sharedEnvironment.allocate();
-        super.allocate(((sharedEnvironment).handle));
+        //        if (!this.environment.isAllocated)
+        //            this.environment.allocate();
+        //        super.allocate(((this.environment).handle));
     }
 
     public override void free()
@@ -146,7 +146,8 @@ class Connection : ConnectionHandle
 
     public @property Environment environment()
     {
-        return sharedEnvironment;
+        return environment_factory();
+        //        return sharedEnvironment;
     }
 
     public Statement statement()
@@ -714,83 +715,83 @@ public Connection connect(string connection_string, size_t login_timeout = 0)
     return conn;
 }
 
-unittest
-{
-    writeln("\n\nConnection Unit Tests\n");
-    //    Connection conn = connect();
-    //
-    //    writeln("After allocate:");
-    //    assert(conn.environment.isAllocated,
-    //            format("Environment is not allocated, status: %s", conn.environment.isAllocated));
-    //    assert(conn.isAllocated, format("Connection is not allocated, status: %s", conn.isAllocated));
-    //
-    //    writefln("Is Allocated: %s", conn.isAllocated);
-    //    writefln("Connection String: %s", conn.connection_string);
-    //    writefln("Access Mode: %s", conn.access_mode);
-    //    writefln("Autocommit: %s", conn.autocommit);
-    //    writefln("Connection Timeout: %s", conn.connection_timeout);
-    //    writefln("Current Catalog: %s", conn.current_catalog);
-    //    writefln("Login Timeout: %s", conn.login_timeout);
-    //    writefln("Metadata ID: %s", conn.metadata_id);
-    //    writefln("ODBC Cursors: %s", conn.odbc_cursors);
-    //    writefln("Packet Size: %s", conn.packet_size);
-    //    writefln("Trace: %s", conn.trace);
-    //    writefln("Tracefile: %s", conn.tracefile);
-    //    writefln("Transaction Isolation: %s", conn.transaction_isolation);
-    //
-    //    conn.free();
-    //    writeln("\nAfter free:");
-    //    assert(!conn.isAllocated);
-    //
-    //    writefln("Is Allocated: %s", conn.isAllocated);
-    //    writefln("Connection String: %s", conn.connection_string);
-    //    writefln("Access Mode: %s", conn.access_mode);
-    //    writefln("Autocommit: %s", conn.autocommit);
-    //    writefln("Connection Timeout: %s", conn.connection_timeout);
-    //    writefln("Current Catalog: %s", conn.current_catalog);
-    //    writefln("Login Timeout: %s", conn.login_timeout);
-    //    writefln("Metadata ID: %s", conn.metadata_id);
-    //    writefln("ODBC Cursors: %s", conn.odbc_cursors);
-    //    writefln("Packet Size: %s", conn.packet_size);
-    //    writefln("Trace: %s", conn.trace);
-    //    writefln("Tracefile: %s", conn.tracefile);
-    //    writefln("Transaction Isolation: %s", conn.transaction_isolation);
-
-    //    conn.destroy();
-
-    auto conn2 = connect();
-    assert(conn2.isAllocated);
-    //DSN is set up as a file on local directory: C:\testsqlite.sqlite
-    string conn_str = "Driver={SQLite3 ODBC Driver};Database=:memory:;";
-    conn2.connect(conn_str);
-
-    writeln("\nAfter Connect:");
-
-    writefln("Connection String: %s", conn2.connection_string);
-    writefln("Access Mode: %s", conn2.access_mode);
-    writefln("Autocommit: %s", conn2.autocommit);
-    writefln("Connection Timeout: %s", conn2.connection_timeout);
-    writefln("Current Catalog: %s", conn2.current_catalog);
-    writefln("Login Timeout: %s", conn2.login_timeout);
-    writefln("Metadata ID: %s", conn2.metadata_id);
-    writefln("ODBC Cursors: %s", conn2.odbc_cursors);
-    writefln("Packet Size: %s", conn2.packet_size);
-    writefln("Trace: %s", conn2.trace);
-    writefln("Tracefile: %s", conn2.tracefile);
-    writefln("Transaction Isolation: %s", conn2.transaction_isolation);
-
-    writeln("\nCalling SQLTables:");
-    auto tables_prep = conn2.tables();
-    writefln("Number of Columns: %s", tables_prep.n_cols);
-    tables_prep.describeColumns();
-
-    writeln("\nCalling SQLColumns:");
-    auto columns_prep = conn2.columns();
-    writefln("Number of Columns: %s", columns_prep.n_cols);
-    columns_prep.describeColumns();
-
-    //        prep.destroy();
-    //        conn2.destroy();
-
-    writeln("\n\n");
-}
+//unittest
+//{
+//    writeln("\n\nConnection Unit Tests\n");
+//    Connection conn = connect();
+//
+//    writeln("After allocate:");
+//    assert(conn.environment.isAllocated,
+//            format("Environment is not allocated, status: %s", conn.environment.isAllocated));
+//    assert(conn.isAllocated, format("Connection is not allocated, status: %s", conn.isAllocated));
+//
+//    writefln("Is Allocated: %s", conn.isAllocated);
+//    writefln("Connection String: %s", conn.connection_string);
+//    writefln("Access Mode: %s", conn.access_mode);
+//    writefln("Autocommit: %s", conn.autocommit);
+//    writefln("Connection Timeout: %s", conn.connection_timeout);
+//    writefln("Current Catalog: %s", conn.current_catalog);
+//    writefln("Login Timeout: %s", conn.login_timeout);
+//    writefln("Metadata ID: %s", conn.metadata_id);
+//    writefln("ODBC Cursors: %s", conn.odbc_cursors);
+//    writefln("Packet Size: %s", conn.packet_size);
+//    writefln("Trace: %s", conn.trace);
+//    writefln("Tracefile: %s", conn.tracefile);
+//    writefln("Transaction Isolation: %s", conn.transaction_isolation);
+//
+//    conn.free();
+//    writeln("\nAfter free:");
+//    assert(!conn.isAllocated);
+//
+//    writefln("Is Allocated: %s", conn.isAllocated);
+//    writefln("Connection String: %s", conn.connection_string);
+//    writefln("Access Mode: %s", conn.access_mode);
+//    writefln("Autocommit: %s", conn.autocommit);
+//    writefln("Connection Timeout: %s", conn.connection_timeout);
+//    writefln("Current Catalog: %s", conn.current_catalog);
+//    writefln("Login Timeout: %s", conn.login_timeout);
+//    writefln("Metadata ID: %s", conn.metadata_id);
+//    writefln("ODBC Cursors: %s", conn.odbc_cursors);
+//    writefln("Packet Size: %s", conn.packet_size);
+//    writefln("Trace: %s", conn.trace);
+//    writefln("Tracefile: %s", conn.tracefile);
+//    writefln("Transaction Isolation: %s", conn.transaction_isolation);
+//
+//    // conn.destroy();
+//
+//    auto conn2 = connect();
+//    assert(conn2.isAllocated);
+//    //DSN is set up as a file on local directory: C:\testsqlite.sqlite
+//    string conn_str = "Driver={SQLite3 ODBC Driver};Database=:memory:;";
+//    conn2.connect(conn_str);
+//
+//    writeln("\nAfter Connect:");
+//
+//    writefln("Connection String: %s", conn2.connection_string);
+//    writefln("Access Mode: %s", conn2.access_mode);
+//    writefln("Autocommit: %s", conn2.autocommit);
+//    writefln("Connection Timeout: %s", conn2.connection_timeout);
+//    writefln("Current Catalog: %s", conn2.current_catalog);
+//    writefln("Login Timeout: %s", conn2.login_timeout);
+//    writefln("Metadata ID: %s", conn2.metadata_id);
+//    writefln("ODBC Cursors: %s", conn2.odbc_cursors);
+//    writefln("Packet Size: %s", conn2.packet_size);
+//    writefln("Trace: %s", conn2.trace);
+//    writefln("Tracefile: %s", conn2.tracefile);
+//    writefln("Transaction Isolation: %s", conn2.transaction_isolation);
+//
+//    writeln("\nCalling SQLTables:");
+//    auto tables_prep = conn2.tables();
+//    writefln("Number of Columns: %s", tables_prep.n_cols);
+//    tables_prep.describeColumns();
+//
+//    writeln("\nCalling SQLColumns:");
+//    auto columns_prep = conn2.columns();
+//    writefln("Number of Columns: %s", columns_prep.n_cols);
+//    columns_prep.describeColumns();
+//
+//    // prep.destroy();
+//    // conn2.destroy();
+//
+//    writeln("\n\n");
+//}

@@ -15,8 +15,10 @@ import std.variant;
 
 import core.stdc.config;
 
-
+/// ODBC Handle Type alias
 alias handle_t = SQLHANDLE;
+
+/// ODBC opaque pointer type 
 alias pointer_t = SQLPOINTER;
 
 version (X86_64)
@@ -32,10 +34,12 @@ else
     alias BOOKMARK = SQLULEN;
 }
 
-private enum comp(alias a, alias b) = (a).sizeof < (b).sizeof;
+//private enum comp(alias a, alias b) = (a).sizeof < (b).sizeof;
 
 // dfmt off
-public alias alias_seq = 
+
+// /// Sequence of Variant aliases to 
+public alias SQLAliasSequence = 
     NoDuplicates!(
         AliasSeq!(
             SQLCHAR, SQLCHAR[],
@@ -58,14 +62,14 @@ public alias alias_seq =
     );
 // dfmt on
 
-public alias sql_algebriaic = Algebraic!(alias_seq);
-public alias sql_variant = VariantN!(maxSize!(alias_seq), alias_seq);
+public alias SQLAlgebraic = Algebraic!(SQLAliasSequence);
+public alias SQLVariant = Variant;
 
 unittest
 {
     import std.stdio;
 
-    writefln("Max alias_seq size:      %s", maxSize!alias_seq);
+    writefln("Max alias_seq size:      %s", maxSize!SQLAliasSequence);
 }
 
 //struct Bytes
