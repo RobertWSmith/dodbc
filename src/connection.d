@@ -4,6 +4,7 @@ import std.algorithm : find, merge;
 import std.container.array : Array;
 import std.container.util : make;
 import std.conv : to;
+import std.functional : partial;
 import std.typecons : Ternary, Tuple;
 import std.traits : EnumMembers;
 import std.string : toStringz, fromStringz;
@@ -16,14 +17,74 @@ import dodbc.root;
 import dodbc.environment;
 import dodbc.statement;
 
+// shared Environment variable
+import std.concurrency;
+import core.atomic;
+import core.sync.mutex : Mutex;
+
+shared static this()
+{
+    sharedConnectionMutex = new Mutex;
+}
+
+// this mutex protects `sharedConnectionMutexArray`
+private __gshared Mutex sharedConnectionMutex;
+// this mutex array protects `sharedConnectionObjectArray`
+private __gshared Mutex[uuid.UUID] sharedConnectionMutexArray;
+private shared Connection[uuid.UUID] sharedConnectionObjectArray;
+
+// returns the default global environment
+private Connection defaultSharedConnectionImpl(
+        uuid.UUID id = uuid.UUID("00000000-0000-0000-0000-000000000001")) @trusted
+{
+    synchronized (sharedConnectionMutex)
+    {
+        Mutex* m = (id in sharedConnectionMutexArray);
+        if (m is null)
+        {
+            *m = new Mutex;
+            synchronized (*m)
+            {
+                Connection conn = connect();
+                sharedConnectionObjectArray[id] = cast(shared) conn;
+            }
+        }
+    }
+    return cast(Connection) atomicLoad!(MemoryOrder.acq)(sharedConnectionObjectArray[id]);
+}
+
+public Connection sharedConnection(uuid.UUID id)
+{
+    static auto trustedLoad(ref shared Connection env) @trusted
+    {
+        return atomicLoad!(MemoryOrder.acq)(env);
+    }
+
+    // if we have set up our own environment use that
+    if (auto env = trustedLoad(sharedConnectionObjectArray[id]))
+    {
+        return env;
+    }
+    else
+    {
+        return defaultSharedConnectionImpl;
+    }
+}
+
+public void sharedConnection(Connection input) @trusted
+{
+    uuid.UUID id = input.id;
+    atomicStore!(MemoryOrder.rel)(sharedConnectionObjectArray[id], cast(shared) input);
+}
+
 class Connection : ConnectionHandle
 {
     private string _connection_string;
     private Statement[] _statements;
 
-    package this(size_t login_timeout)
+    package this(size_t login_timeout, uuid.UUID id = generateUUID("Connection"))
     {
-        super(generateUUID("Connection"));
+        super(id);
         this.allocate();
         this.login_timeout = login_timeout;
     }
@@ -34,13 +95,12 @@ class Connection : ConnectionHandle
         this.free();
     }
 
-    private alias allocate = ConnectionHandle.allocate;
-    public void allocate()
+    public override void allocate(handle_t input = (sharedEnvironment.handle))
     {
         this.free();
         if (!sharedEnvironment.isAllocated)
             sharedEnvironment.allocate();
-        super.allocate(((sharedEnvironment).handle));
+        super.allocate(input);
     }
 
     public override void free()
