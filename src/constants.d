@@ -1,5 +1,14 @@
 module dodbc.constants;
 
+version (Windows) import core.sys.windows.windows;
+
+import etc.c.odbc.sql;
+import etc.c.odbc.sqlext;
+import etc.c.odbc.sqltypes;
+import etc.c.odbc.sqlucode;
+
+version (Windows) pragma(lib, "odbc32");
+
 import dodbc.types;
 import std.typecons : Tuple;
 
@@ -605,6 +614,8 @@ enum InfoType // SQLGetInfo
     LikeEscapeClause = 113, // SQL_LIKE_ESCAPE_CLAUSE, // 113
     LockTypes = 78, // SQL_LOCK_TYPES, // 78
 
+    MaxAsyncConcurrentStatements = SQL_MAX_ASYNC_CONCURRENT_STATEMENTS, // 10022
+    MaxDriverConnections = SQL_MAX_DRIVER_CONNECTIONS,
     MaxBinaryLiteralLength = 112, // SQL_MAX_BINARY_LITERAL_LEN, // 112
     MaxCharacterLiteralsLength = 108, // SQL_MAX_CHAR_LITERAL_LEN, // 108
     MaxRowSizeIncludesLong = 103, // SQL_MAX_ROW_SIZE_INCLUDES_LONG, // 103
@@ -613,7 +624,7 @@ enum InfoType // SQLGetInfo
     MaxProcedureNameLength = 33, // SQL_MAX_PROCEDURE_NAME_LEN, // 33
     MaxQualifierNameLength = 34, // SQL_MAX_QUALIFIER_NAME_LEN, // 34 -- MAX_CATALOG_NAME_LEN
 
-    MaxAsyncConcurrentStatements = SQL_MAX_ASYNC_CONCURRENT_STATEMENTS, // 10022
+    
     // MaxColumnsInGroupBy = SQL_MAX_COLUMNS_IN_GROUP_BY, // 
     // MaxColumnsInIndex = SQL_MAX_COLUMNS_IN_INDEX, // 
     // MaxColumnsInOrderBy = SQL_MAX_COLUMNS_IN_ORDER_BY, // 
@@ -691,6 +702,13 @@ enum InfoType // SQLGetInfo
     Union = SQL_UNION, // 96
 }
 // dfmt on
+
+enum AsyncMode : SQLUINTEGER
+{
+    None = 0, // SQL_AM_NONE,
+    Connection = 1, // SQL_AM_CONNECTION,
+    Statement = 2, // SQL_AM_STATEMENT,
+}
 
 enum AlterTableBitmasks
 {
@@ -882,6 +900,13 @@ enum BulkOperations
     UpdateByBookmark = SQL_UPDATE_BY_BOOKMARK, // 5
     DeleteByBookmark = SQL_DELETE_BY_BOOKMARK, // 6
     FetchByBookmark = SQL_FETCH_BY_BOOKMARK, // 7
+}
+
+enum ODBCInterfaceConformance
+{
+    Core = SQL_OIC_CORE,
+    Level1 = SQL_OIC_LEVEL1,
+    Level2 = SQL_OIC_LEVEL2,
 }
 
 enum SpecialColumns

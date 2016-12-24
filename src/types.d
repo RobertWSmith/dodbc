@@ -1,11 +1,11 @@
 module dodbc.types;
 
-version (Windows) public import core.sys.windows.windows;
+version (Windows) import core.sys.windows.windows;
 
-public import etc.c.odbc.sql;
-public import etc.c.odbc.sqlext;
-public import etc.c.odbc.sqltypes;
-public import etc.c.odbc.sqlucode;
+import etc.c.odbc.sql;
+import etc.c.odbc.sqlext;
+import etc.c.odbc.sqltypes;
+import etc.c.odbc.sqlucode;
 
 version (Windows) pragma(lib, "odbc32");
 
@@ -14,7 +14,6 @@ import std.traits;
 import std.variant;
 
 import core.stdc.config;
-
 
 alias handle_t = SQLHANDLE;
 alias pointer_t = SQLPOINTER;

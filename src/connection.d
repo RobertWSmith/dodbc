@@ -11,71 +11,80 @@ import std.string : toStringz, fromStringz;
 
 static import uuid = std.uuid;
 
+version (Windows) import core.sys.windows.windows;
+
+import etc.c.odbc.sql;
+import etc.c.odbc.sqlext;
+import etc.c.odbc.sqltypes;
+import etc.c.odbc.sqlucode;
+
+version (Windows) pragma(lib, "odbc32");
+
 import dodbc.types;
 import dodbc.constants;
 import dodbc.root;
 import dodbc.environment;
 import dodbc.statement;
 
-// shared Environment variable
-import std.concurrency;
-import core.atomic;
-import core.sync.mutex : Mutex;
-
-shared static this()
-{
-    sharedConnectionMutex = new Mutex;
-}
-
-// this mutex protects `sharedConnectionMutexArray`
-private __gshared Mutex sharedConnectionMutex;
-// this mutex array protects `sharedConnectionObjectArray`
-private __gshared Mutex[uuid.UUID] sharedConnectionMutexArray;
-private shared Connection[uuid.UUID] sharedConnectionObjectArray;
-
-// returns the default global environment
-private Connection defaultSharedConnectionImpl(
-        uuid.UUID id = uuid.UUID("00000000-0000-0000-0000-000000000001")) @trusted
-{
-    synchronized (sharedConnectionMutex)
-    {
-        Mutex* m = (id in sharedConnectionMutexArray);
-        if (m is null)
-        {
-            *m = new Mutex;
-            synchronized (*m)
-            {
-                Connection conn = connect();
-                sharedConnectionObjectArray[id] = cast(shared) conn;
-            }
-        }
-    }
-    return cast(Connection) atomicLoad!(MemoryOrder.acq)(sharedConnectionObjectArray[id]);
-}
-
-public Connection sharedConnection(uuid.UUID id)
-{
-    static auto trustedLoad(ref shared Connection env) @trusted
-    {
-        return atomicLoad!(MemoryOrder.acq)(env);
-    }
-
-    // if we have set up our own environment use that
-    if (auto env = trustedLoad(sharedConnectionObjectArray[id]))
-    {
-        return env;
-    }
-    else
-    {
-        return defaultSharedConnectionImpl;
-    }
-}
-
-public void sharedConnection(Connection input) @trusted
-{
-    uuid.UUID id = input.id;
-    atomicStore!(MemoryOrder.rel)(sharedConnectionObjectArray[id], cast(shared) input);
-}
+// // shared Environment variable
+//import std.concurrency;
+//import core.atomic;
+//import core.sync.mutex : Mutex;
+//
+//shared static this()
+//{
+//    sharedConnectionMutex = new Mutex;
+//}
+//
+// // this mutex protects `sharedConnectionMutexArray`
+//private __gshared Mutex sharedConnectionMutex;
+// // this mutex array protects `sharedConnectionObjectArray`
+//private __gshared Mutex[uuid.UUID] sharedConnectionMutexArray;
+//private shared Connection[uuid.UUID] sharedConnectionObjectArray;
+//
+// // returns the default global environment
+//private Connection defaultSharedConnectionImpl(
+//        uuid.UUID id = uuid.UUID("00000000-0000-0000-0000-000000000001")) @trusted
+//{
+//    synchronized (sharedConnectionMutex)
+//    {
+//        Mutex* m = (id in sharedConnectionMutexArray);
+//        if (m is null)
+//        {
+//            *m = new Mutex;
+//            synchronized (*m)
+//            {
+//                Connection conn = connect();
+//                sharedConnectionObjectArray[id] = cast(shared) conn;
+//            }
+//        }
+//    }
+//    return cast(Connection) atomicLoad!(MemoryOrder.acq)(sharedConnectionObjectArray[id]);
+//}
+//
+//public Connection sharedConnection(uuid.UUID id)
+//{
+//    static auto trustedLoad(ref shared Connection env) @trusted
+//    {
+//        return atomicLoad!(MemoryOrder.acq)(env);
+//    }
+//
+//    // if we have set up our own environment use that
+//    if (auto env = trustedLoad(sharedConnectionObjectArray[id]))
+//    {
+//        return env;
+//    }
+//    else
+//    {
+//        return defaultSharedConnectionImpl;
+//    }
+//}
+//
+//public void sharedConnection(Connection input) @trusted
+//{
+//    uuid.UUID id = input.id;
+//    atomicStore!(MemoryOrder.rel)(sharedConnectionObjectArray[id], cast(shared) input);
+//}
 
 class Connection : ConnectionHandle
 {
@@ -537,72 +546,99 @@ class Connection : ConnectionHandle
         this.setAttribute(ConnectionAttributes.TransactionIsolation, &value);
     }
 
-    ////driver getInfo properties
-    //public @property string async_mode()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string async_notification()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string data_source_name()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string driver_name()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string driver_odbc_version()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string driver_version()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string info_schema_views()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string max_async_concurrent_statements()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string mas_concurrent_activities()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string max_driver_connections()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string odbc_interface_conformance()
-    //{
-    //return "";
-    //}
-    //
+    //    public void getInfo(InfoType info_type, pointer_t value_ptr,
+    //            SQLSMALLINT buffer_length = 0, SQLSMALLINT* string_length_ptr = null)
+
+    // //driver getInfo properties
+    public @property AsyncMode async_mode()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.AsyncMode, &value);
+        return to!AsyncMode(value);
+    }
+
+    //    public @property bool async_notification_capable()
+    //    {
+    //        SQLUINTEGER value;
+    //        this.getInfo(InfoType.AsyncNotification, &value);
+    //        return (value == SQL_ASYNC_NOTIFICATION_CAPABLE);
+    //    }
+
+    public @property string data_source_name()
+    {
+        SQLCHAR[64 + 1] value;
+        this.getInfo(InfoType.DataSourceName, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
+    public @property string driver_name()
+    {
+        SQLCHAR[1024 + 1] value;
+        this.getInfo(InfoType.DriverName, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
+    public @property string driver_odbc_version()
+    {
+        SQLCHAR[64 + 1] value;
+        this.getInfo(InfoType.DriverODBCVersion, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
+    public @property string driver_version()
+    {
+        SQLCHAR[64 + 1] value;
+        this.getInfo(InfoType.DriverVersion, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
+    public @property SQLUINTEGER information_schema_views()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.InformationSchemaViews, &value);
+        return value;
+    }
+
+    public @property size_t max_async_concurrent_statements()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.MaxAsyncConcurrentStatements, &value);
+        return to!size_t(value);
+    }
+
+    public @property ushort max_concurrent_activities()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxAsyncConcurrentStatements, &value);
+        return to!ushort(value);
+    }
+
+    public @property size_t max_driver_connections()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxDriverConnections, &value);
+        return to!ushort(value);
+    }
+
+    public @property ODBCInterfaceConformance odbc_interface_conformance()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.ODBCInterfaceConformance, &value);
+        return to!ODBCInterfaceConformance(value);
+    }
+
     //public @property string odbc_standard_cli_conformance()
     //{
     //return "";
     //}
-    //
-    //public @property string odbc_version()
-    //{
-    //return "";
-    //}
-    //
+
+    public @property string odbc_version()
+    {
+        SQLCHAR[64 + 1] value;
+        this.getInfo(InfoType.ODBCVersion, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
     //public @property string parameter_array_row_counts()
     //{
     //return "";
@@ -777,44 +813,43 @@ public Connection connect(string connection_string, size_t login_timeout = 0)
 unittest
 {
     writeln("\n\nConnection Unit Tests\n");
-    //    Connection conn = connect();
-    //
-    //    writeln("After allocate:");
-    //    assert(conn.environment.isAllocated,
-    //            format("Environment is not allocated, status: %s", conn.environment.isAllocated));
-    //    assert(conn.isAllocated, format("Connection is not allocated, status: %s", conn.isAllocated));
-    //
-    //    writefln("Is Allocated: %s", conn.isAllocated);
-    //    writefln("Connection String: %s", conn.connection_string);
-    //    writefln("Access Mode: %s", conn.access_mode);
-    //    writefln("Autocommit: %s", conn.autocommit);
-    //    writefln("Connection Timeout: %s", conn.connection_timeout);
-    //    writefln("Current Catalog: %s", conn.current_catalog);
-    //    writefln("Login Timeout: %s", conn.login_timeout);
-    //    writefln("Metadata ID: %s", conn.metadata_id);
-    //    writefln("ODBC Cursors: %s", conn.odbc_cursors);
-    //    writefln("Packet Size: %s", conn.packet_size);
-    //    writefln("Trace: %s", conn.trace);
-    //    writefln("Tracefile: %s", conn.tracefile);
-    //    writefln("Transaction Isolation: %s", conn.transaction_isolation);
-    //
-    //    conn.free();
-    //    writeln("\nAfter free:");
-    //    assert(!conn.isAllocated);
-    //
-    //    writefln("Is Allocated: %s", conn.isAllocated);
-    //    writefln("Connection String: %s", conn.connection_string);
-    //    writefln("Access Mode: %s", conn.access_mode);
-    //    writefln("Autocommit: %s", conn.autocommit);
-    //    writefln("Connection Timeout: %s", conn.connection_timeout);
-    //    writefln("Current Catalog: %s", conn.current_catalog);
-    //    writefln("Login Timeout: %s", conn.login_timeout);
-    //    writefln("Metadata ID: %s", conn.metadata_id);
-    //    writefln("ODBC Cursors: %s", conn.odbc_cursors);
-    //    writefln("Packet Size: %s", conn.packet_size);
-    //    writefln("Trace: %s", conn.trace);
-    //    writefln("Tracefile: %s", conn.tracefile);
-    //    writefln("Transaction Isolation: %s", conn.transaction_isolation);
+    Connection conn = connect();
+
+    writeln("After allocate:");
+    assert(conn.environment.isAllocated,
+            format("Environment is not allocated, status: %s", conn.environment.isAllocated));
+    assert(conn.isAllocated, format("Connection is not allocated, status: %s", conn.isAllocated));
+    writefln("Is Allocated: %s", conn.isAllocated);
+    writefln("Connection String: %s", conn.connection_string);
+    writefln("Access Mode: %s", conn.access_mode);
+    writefln("Autocommit: %s", conn.autocommit);
+    writefln("Connection Timeout: %s", conn.connection_timeout);
+    writefln("Current Catalog: %s", conn.current_catalog);
+    writefln("Login Timeout: %s", conn.login_timeout);
+    writefln("Metadata ID: %s", conn.metadata_id);
+    writefln("ODBC Cursors: %s", conn.odbc_cursors);
+    writefln("Packet Size: %s", conn.packet_size);
+    writefln("Trace: %s", conn.trace);
+    writefln("Tracefile: %s", conn.tracefile);
+    writefln("Transaction Isolation: %s", conn.transaction_isolation);
+
+    conn.free();
+    writeln("\nAfter free:");
+    assert(!conn.isAllocated);
+
+    writefln("Is Allocated: %s", conn.isAllocated);
+    writefln("Connection String: %s", conn.connection_string);
+    writefln("Access Mode: %s", conn.access_mode);
+    writefln("Autocommit: %s", conn.autocommit);
+    writefln("Connection Timeout: %s", conn.connection_timeout);
+    writefln("Current Catalog: %s", conn.current_catalog);
+    writefln("Login Timeout: %s", conn.login_timeout);
+    writefln("Metadata ID: %s", conn.metadata_id);
+    writefln("ODBC Cursors: %s", conn.odbc_cursors);
+    writefln("Packet Size: %s", conn.packet_size);
+    writefln("Trace: %s", conn.trace);
+    writefln("Tracefile: %s", conn.tracefile);
+    writefln("Transaction Isolation: %s", conn.transaction_isolation);
 
     //    conn.destroy();
 
@@ -823,7 +858,6 @@ unittest
     //DSN is set up as a file on local directory: C:\testsqlite.sqlite
     string conn_str = "Driver={SQLite3 ODBC Driver};Database=:memory:;";
     conn2.connect(conn_str);
-
     writeln("\nAfter Connect:");
 
     writefln("Connection String: %s", conn2.connection_string);
@@ -839,17 +873,26 @@ unittest
     writefln("Tracefile: %s", conn2.tracefile);
     writefln("Transaction Isolation: %s", conn2.transaction_isolation);
 
+    writefln("Async Mode: %s", conn2.async_mode);
+    writefln("Data Source Name: %s", conn2.data_source_name);
+    writefln("Driver Name: %s", conn2.driver_name);
+    writefln("Driver ODBC Version: %s", conn2.driver_odbc_version);
+    writefln("Driver Version: %s", conn2.driver_version);
+    writefln("Information Schema Views: %s", conn2.information_schema_views);
+    writefln("Max Async Concurrent Statements: %s", conn2.max_async_concurrent_statements);
+    writefln("Max Concurrent Statements: %s", conn2.max_concurrent_activities);
+    writefln("Max Driver Connections: %s", conn2.max_driver_connections);
+    writefln("ODBC Interface Conformance: %s", conn2.odbc_interface_conformance);
+    writefln("ODBC Version: %s", conn2.odbc_version);
+
     writeln("\nCalling SQLTables:");
     auto tables_prep = conn2.tables();
     writefln("Number of Columns: %s", tables_prep.n_cols);
     tables_prep.describeColumns();
-
     writeln("\nCalling SQLColumns:");
     auto columns_prep = conn2.columns();
     writefln("Number of Columns: %s", columns_prep.n_cols);
-    columns_prep.describeColumns();
-
-    //        prep.destroy();
+    columns_prep.describeColumns(); //        prep.destroy();
     //        conn2.destroy();
 
     writeln("\n\n");

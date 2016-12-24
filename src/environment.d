@@ -4,6 +4,15 @@ import dodbc.types;
 import dodbc.constants;
 import dodbc.root;
 
+version (Windows) import core.sys.windows.windows;
+
+import etc.c.odbc.sql;
+import etc.c.odbc.sqlext;
+import etc.c.odbc.sqltypes;
+import etc.c.odbc.sqlucode;
+
+version (Windows) pragma(lib, "odbc32");
+
 static import uuid = std.uuid;
 import std.conv : to;
 import std.string : fromStringz;
