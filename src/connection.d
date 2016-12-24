@@ -665,56 +665,74 @@ class Connection : ConnectionHandle
     //}
     //
     ////dbms product getInfo properties
-    //public @property string database_name()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string dbms_name()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string dbms_version()
-    //{
-    //return "";
-    //}
-    //
-    ////data source getInfo properties
-    //public @property string catalog_term()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string Statement_commit_behavior()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string Statement_rollback_behavior()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string Statement_sensitivity()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string data_source_read_only()
-    //{
-    //return "";
-    //}
-    //
+    public @property string database_name()
+    {
+        SQLCHAR[64 + 1] value;
+        this.getInfo(InfoType.DatabaseName, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
+    public @property string dbms_name()
+    {
+        SQLCHAR[64 + 1] value;
+        this.getInfo(InfoType.DBMSName, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
+    public @property string dbms_version()
+    {
+        SQLCHAR[64 + 1] value;
+        this.getInfo(InfoType.DBMSVersion, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
+    //data source getInfo properties
+    public @property string catalog_term()
+    {
+        SQLCHAR[64 + 1] value;
+        this.getInfo(InfoType.CatalogTerm, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
+    public @property CursorCommitBehavior cursor_commit_behavior()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.CursorCommitBehavior, cast(pointer_t)&value);
+        return to!CursorCommitBehavior(value);
+    }
+
+    public @property CursorRollbackBehavior cursor_rollback_behavior()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.CursorRollbackBehavior, cast(pointer_t)&value);
+        return to!CursorRollbackBehavior(value);
+    }
+
+    public @property CursorSensitivity cursor_sensitivity()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.CursorSensitivity, cast(pointer_t)&value);
+        return to!CursorSensitivity(value);
+    }
+
+    public @property bool data_source_read_only()
+    {
+        SQLCHAR[1 + 1] value;
+        this.getInfo(InfoType.DataSourceReadOnly, cast(pointer_t) value.ptr, value.length);
+        return !(str_conv(value.ptr) == "N");
+    }
+
     //public @property string default_transaction_isolation()
     //{
     //return "";
     //}
     //
-    //public @property string describe_parameter()
-    //{
-    //return "";
-    //}
+    public @property bool describe_parameter()
+    {
+        SQLCHAR[1 + 1] value;
+        this.getInfo(InfoType.DescribeParameter, cast(pointer_t) value.ptr, value.length);
+        return !(str_conv(value.ptr) == "N");
+    }
     //
     //public @property string multiple_result_sets()
     //{
@@ -884,6 +902,14 @@ unittest
     writefln("Max Driver Connections: %s", conn2.max_driver_connections);
     writefln("ODBC Interface Conformance: %s", conn2.odbc_interface_conformance);
     writefln("ODBC Version: %s", conn2.odbc_version);
+    writefln("Database Name: %s", conn2.database_name);
+    writefln("DBMS Name: %s", conn2.dbms_name);
+    writefln("DBMS Version: %s", conn2.dbms_version);
+    writefln("Catalog Term: %s", conn2.catalog_term);
+    writefln("Cursor Commit Behavior: %s", conn2.cursor_commit_behavior);
+    writefln("Cursor Rollback Behavior: %s", conn2.cursor_rollback_behavior);
+    writefln("Cursor Sensitivity: %s", conn2.cursor_sensitivity);
+    writefln("Describe Parameter: %s", conn2.describe_parameter);
 
     writeln("\nCalling SQLTables:");
     auto tables_prep = conn2.tables();

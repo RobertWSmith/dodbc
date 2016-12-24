@@ -566,10 +566,13 @@ enum InfoType // SQLGetInfo
     DataSourceReadOnly = SQL_DATA_SOURCE_READ_ONLY, // 
     DatetimeLiterals = SQL_DATETIME_LITERALS, // 119
 
+    DatabaseName = 16, //SQL_DATABASE_NAME
     DBMSName = SQL_DBMS_NAME, // 
-    DBMSVersion = SQL_DBMS_VER, DDLIndex = SQL_DDL_INDEX, // 170 
+    DBMSVersion = SQL_DBMS_VER, 
+    DDLIndex = SQL_DDL_INDEX, // 170 
     DefaultTransactionIsolation = SQL_DEFAULT_TXN_ISOLATION, // 
-    DescribeParameter = SQL_DESCRIBE_PARAMETER, DMVersion = SQL_DM_VER, // 171
+    DescribeParameter = SQL_DESCRIBE_PARAMETER, 
+    DMVersion = SQL_DM_VER, // 171
 
     DriverConnection = 3, // SQL_DRIVER_HDBC, // 3
     DriverEnvironment = 4, // SQL_DRIVER_HENV, // 4
@@ -959,4 +962,18 @@ enum StatisticsCardinalityPages : SQLUSMALLINT
 {
     Quick = SQL_QUICK,
     Ensure = SQL_ENSURE,
+}
+
+enum CursorCommitBehavior
+{
+    Delete = SQL_CB_DELETE,
+    Close = SQL_CB_CLOSE,
+    Preserve = SQL_CB_PRESERVE,
+}
+
+enum CursorRollbackBehavior
+{
+    Delete = SQL_CB_DELETE,
+    Close = SQL_CB_CLOSE,
+    Preserve = SQL_CB_PRESERVE,
 }
