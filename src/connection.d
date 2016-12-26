@@ -722,80 +722,104 @@ class Connection : ConnectionHandle
         return !(str_conv(value.ptr) == "N");
     }
 
-    //public @property string default_transaction_isolation()
-    //{
-    //return "";
-    //}
-    //
-    public @property bool describe_parameter()
+    public @property DefaultTransactionIsolation default_transaction_isolation()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.DefaultTransactionIsolation, &value);
+        return to!DefaultTransactionIsolation(value);
+    }
+
+    public @property bool supports_describe_parameter()
     {
         SQLCHAR[1 + 1] value;
         this.getInfo(InfoType.DescribeParameter, cast(pointer_t) value.ptr, value.length);
         return !(str_conv(value.ptr) == "N");
     }
-    //
-    //public @property string multiple_result_sets()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string multiple_active_transactions()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string need_long_data_length()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string null_collation()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string procedure_term()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string scheam_term()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string scroll_options()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string table_term()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string transaction_capable()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string transaction_isolation_option()
-    //{
-    //return "";
-    //}
-    //
-    //public @property string user_name()
-    //{
-    //return "";
-    //}
-    //
-    ////supported SQL getInfo properties
-    //
-    ////SQL limits getInfo properties
-    //
-    ////scalar function getInfo properties
-    //
-    ////conversion getInfo properties
+
+    public @property bool supports_multiple_result_sets()
+    {
+        SQLCHAR[1 + 1] value;
+        this.getInfo(InfoType.MultipleResultSets, cast(pointer_t) value.ptr, value.length);
+        return !(str_conv(value.ptr) == "N");
+    }
+
+    public @property bool supports_multiple_active_transactions()
+    {
+        SQLCHAR[1 + 1] value;
+        this.getInfo(InfoType.MultipleActiveTransactions, cast(pointer_t) value.ptr, value.length);
+        return !(str_conv(value.ptr) == "N");
+    }
+
+    public @property bool need_long_data_length()
+    {
+        SQLCHAR[1 + 1] value;
+        this.getInfo(InfoType.NeedLongDataLength, cast(pointer_t) value.ptr, value.length);
+        return !(str_conv(value.ptr) == "N");
+    }
+
+    public @property SQLUSMALLINT null_collation()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.NullCollation, &value);
+        return value;
+    }
+
+    public @property string procedure_term()
+    {
+        SQLCHAR[64 + 1] value;
+        this.getInfo(InfoType.ProcedureTerm, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
+    public @property string schema_term()
+    {
+        SQLCHAR[64 + 1] value;
+        this.getInfo(InfoType.SchemaTerm, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
+    public @property SQLUINTEGER scroll_options()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.ScrollOptions, &value);
+        return value;
+    }
+
+    public @property string table_term()
+    {
+        SQLCHAR[64 + 1] value;
+        this.getInfo(InfoType.TableTerm, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
+    public @property SQLUSMALLINT transaction_capable()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.TransactionCapabilities, &value);
+        return value;
+    }
+
+    public @property SQLUINTEGER transaction_isolation_option()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.TransactionIsolationOptions, &value);
+        return value;
+    }
+
+    public @property string user_name()
+    {
+        SQLCHAR[64 + 1] value;
+        this.getInfo(InfoType.UserName, cast(pointer_t) value.ptr, value.length);
+        return str_conv(value.ptr);
+    }
+
+    //supported SQL getInfo properties
+
+    //SQL limits getInfo properties
+
+    //scalar function getInfo properties
+
+    //conversion getInfo properties
 }
 
 private Connection connection_factory(size_t login_timeout)
@@ -909,7 +933,18 @@ unittest
     writefln("Cursor Commit Behavior: %s", conn2.cursor_commit_behavior);
     writefln("Cursor Rollback Behavior: %s", conn2.cursor_rollback_behavior);
     writefln("Cursor Sensitivity: %s", conn2.cursor_sensitivity);
-    writefln("Describe Parameter: %s", conn2.describe_parameter);
+    writefln("Default Transaction Isolation: %s", conn2.default_transaction_isolation);
+    writefln("Supports Describe Parameter: %s", conn2.supports_describe_parameter);
+    writefln("Supports Multiple Result Sets: %s", conn2.supports_multiple_result_sets);
+    writefln("Needs Long Data Length: %s", conn2.need_long_data_length);
+    writefln("Null Collation: %s", conn2.null_collation);
+    writefln("Procedure Term: %s", conn2.procedure_term);
+    writefln("Schema Term: %s", conn2.schema_term);
+    writefln("Scroll Options: %s", conn2.scroll_options);
+    writefln("Table Term: %s", conn2.table_term);
+    writefln("Transaction Capabilities: %s", conn2.transaction_capable);
+    writefln("Transaction Isolation Option: %s", conn2.transaction_isolation_option);
+    writefln("User Name: %s", conn2.user_name);
 
     writeln("\nCalling SQLTables:");
     auto tables_prep = conn2.tables();

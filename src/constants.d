@@ -703,6 +703,7 @@ enum InfoType // SQLGetInfo
     TransactionIsolationOptions = SQL_TXN_ISOLATION_OPTION, // 
 
     Union = SQL_UNION, // 96
+    UserName = SQL_USER_NAME,
 }
 // dfmt on
 
@@ -976,4 +977,12 @@ enum CursorRollbackBehavior
     Delete = SQL_CB_DELETE,
     Close = SQL_CB_CLOSE,
     Preserve = SQL_CB_PRESERVE,
+}
+
+enum DefaultTransactionIsolation
+{
+    ReadUncommitted = SQL_TXN_READ_UNCOMMITTED,
+    ReadCommitted = SQL_TXN_READ_COMMITTED,
+    RepeatableRead = SQL_TXN_REPEATABLE_READ,
+    Serializable = SQL_TXN_SERIALIZABLE,
 }
