@@ -171,10 +171,11 @@ package bool evaluate_bitmask(T, U)(T true_val, U eval_val)
 abstract class Identified
 {
     static import uuid = std.uuid;
+    enum uuid.UUID default_uuid = uuid.UUID("00000000-0000-0000-0000-000000000001");
 
     public static uuid.UUID id;
 
-    package this(uuid.UUID id = generateUUID("identified"))
+    package this(uuid.UUID id = generateUUID("Identified"))
     {
         this.id = id;
     }
@@ -211,7 +212,7 @@ abstract class Root(HandleType _ht) : Identified
     public enum SQLSMALLINT handle_type = to!SQLSMALLINT(_ht);
     private ODBCReturn _return_code;
 
-    this(uuid.UUID id = generateUUID(format("root.%s", this.handle_enum)))
+    this(uuid.UUID id = generateUUID(format("Root.%s", this.handle_enum)))
     {
         super(id);
 

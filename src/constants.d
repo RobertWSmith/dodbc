@@ -552,9 +552,10 @@ enum InfoType // SQLGetInfo
 
     CreateAssertion = SQL_CREATE_ASSERTION, // 127  
     CreateCharacterSet = SQL_CREATE_CHARACTER_SET, // 128
+    CreateCollation = SQL_CREATE_COLLATION, // 
     CreateDomain = SQL_CREATE_DOMAIN, // 130
     CreateSchema = SQL_CREATE_SCHEMA, // 131
-    Createtable = SQL_CREATE_TABLE, // 132
+    CreateTable = SQL_CREATE_TABLE, // 132
     CreateTranslation = SQL_CREATE_TRANSLATION, // 133
     CreateView = SQL_CREATE_VIEW, // 134
 
@@ -618,35 +619,37 @@ enum InfoType // SQLGetInfo
     LockTypes = 78, // SQL_LOCK_TYPES, // 78
 
     MaxAsyncConcurrentStatements = SQL_MAX_ASYNC_CONCURRENT_STATEMENTS, // 10022
-    MaxDriverConnections = SQL_MAX_DRIVER_CONNECTIONS,
     MaxBinaryLiteralLength = 112, // SQL_MAX_BINARY_LITERAL_LEN, // 112
-    MaxCharacterLiteralsLength = 108, // SQL_MAX_CHAR_LITERAL_LEN, // 108
-    MaxRowSizeIncludesLong = 103, // SQL_MAX_ROW_SIZE_INCLUDES_LONG, // 103
-    MaxOwnerNameLength = 32, // SQL_MAX_OWNER_NAME_LEN, // 32 -- MAX_SCHEMA_NAME_LEN
-    MaxSchemaNameLength = SQL_MAX_SCHEMA_NAME_LEN, // SQL_MAX_OWNER_NAME_LEN
-    MaxProcedureNameLength = 33, // SQL_MAX_PROCEDURE_NAME_LEN, // 33
-    MaxQualifierNameLength = 34, // SQL_MAX_QUALIFIER_NAME_LEN, // 34 -- MAX_CATALOG_NAME_LEN
-
     
-    // MaxColumnsInGroupBy = SQL_MAX_COLUMNS_IN_GROUP_BY, // 
-    // MaxColumnsInIndex = SQL_MAX_COLUMNS_IN_INDEX, // 
-    // MaxColumnsInOrderBy = SQL_MAX_COLUMNS_IN_ORDER_BY, // 
-    // MaxColumnsInSelect = SQL_MAX_COLUMNS_IN_SELECT, // 
-    // MaxColumnsInTable = SQL_MAX_COLUMNS_IN_TABLE, // 
-    // MaxConcurrentActivities = SQL_MAX_CONCURRENT_ACTIVITIES, // 
-    // MaxDriverConnections = SQL_MAX_DRIVER_CONNECTIONS, // 
-    // MaxIndexSize = SQL_MAX_INDEX_SIZE,  // 
-    // MaxRowSize = SQL_MAX_ROW_SIZE, // 
-    // MaxBinaryLiteralLength = SQL_MAX_BINARY_LITERAL_LENGTH, // 
-    // MaxCatalogNameLength = SQL_MAX_CATALOG_NAME_LENGTH, // 
-    // MaxCharLiteralLength = SQL_MAX_CHAR_LITERAL_LENGTH, // 
-    // MaxColumnNameLength = SQL_MAX_COLUMN_NAME_LENGTH, // 
-    // MaxCursorNameLength = SQL_MAX_CURSOR_NAME_LENGTH, // 
-    // MaxIdentifierLength = SQL_MAX_IDENTIFIER_LENGTH, // 
-    // MaxStatementLength = SQL_MAX_STATEMENT_LEN,  // 
-    // MaxTableNameLength = SQL_MAX_TABLE_NAME_LEN, // 
-    // MaxTablesInSelect = SQL_MAX_TABLES_IN_SELECT, // 
-    // MaxUserNameLength = SQL_MAX_USER_NAME_LEN, // 
+    MaxCatalogNameLength = SQL_MAX_CATALOG_NAME_LEN, // 
+    MaxCharacterLiteralsLength = 108, // SQL_MAX_CHAR_LITERAL_LEN, // 108
+    MaxColumnNameLength = SQL_MAX_COLUMN_NAME_LEN, // 
+    MaxColumnsInGroupBy = SQL_MAX_COLUMNS_IN_GROUP_BY, // 
+    MaxColumnsInIndex = SQL_MAX_COLUMNS_IN_INDEX, //
+    MaxColumnsInOrderBy = SQL_MAX_COLUMNS_IN_ORDER_BY, // 
+    MaxColumnsInSelect = SQL_MAX_COLUMNS_IN_SELECT, // 
+    MaxColumnsInTable = SQL_MAX_COLUMNS_IN_TABLE, // 
+    MaxConcurrentActivities = SQL_MAX_CONCURRENT_ACTIVITIES, // 
+    MaxCursorNameLength = SQL_MAX_CURSOR_NAME_LEN, // 
+    
+    MaxDriverConnections = SQL_MAX_DRIVER_CONNECTIONS,
+    
+    MaxIdentifierLength = SQL_MAX_IDENTIFIER_LEN, // 
+    MaxIndexSize = SQL_MAX_INDEX_SIZE, //
+    
+    MaxProcedureNameLength = 33, // SQL_MAX_PROCEDURE_NAME_LEN, // 33
+    
+    MaxQualifierNameLength = 34, // SQL_MAX_QUALIFIER_NAME_LEN, // 34 -- MAX_CATALOG_NAME_LEN
+    MaxRowSize = SQL_MAX_ROW_SIZE, // 
+    MaxRowSizeIncludesLong = 103, // SQL_MAX_ROW_SIZE_INCLUDES_LONG, // 103
+    
+    MaxSchemaNameLength = SQL_MAX_SCHEMA_NAME_LEN, // SQL_MAX_OWNER_NAME_LEN // 32
+    MaxStatementLength = SQL_MAX_STATEMENT_LEN, // 
+    
+    MaxTableNameLength = SQL_MAX_TABLE_NAME_LEN, //
+    MaxTablesInSelect = SQL_MAX_TABLES_IN_SELECT, // 
+    
+    MaxUserNameLength = SQL_MAX_USER_NAME_LEN, // 
 
     MultipleResultSets = 36, // SQL_MULT_RESULT_SETS, // 36
     MultipleActiveTransactions = 37, // SQL_MULTIPLE_ACTIVE_TXN, // 37
@@ -985,4 +988,10 @@ enum DefaultTransactionIsolation
     ReadCommitted = SQL_TXN_READ_COMMITTED,
     RepeatableRead = SQL_TXN_REPEATABLE_READ,
     Serializable = SQL_TXN_SERIALIZABLE,
+}
+
+enum CatalogLocation : SQLUSMALLINT
+{
+    Start = SQL_CL_START,
+    End = SQL_CL_END,
 }

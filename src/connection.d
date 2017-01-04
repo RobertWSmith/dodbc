@@ -415,20 +415,17 @@ class Connection : ConnectionHandle
 
     public @property string current_catalog()
     {
-        char[(2048 + 1)] value;
-        value[] = '\0';
-
-        SQLINTEGER value_len = value.length - 1, str_len_ptr;
+        SQLCHAR[] value = new SQLCHAR[this.max_catalog_name_length + 1];
+        SQLINTEGER str_len_ptr;
 
         this.getAttribute(ConnectionAttributes.CurrentCatalog,
-                cast(pointer_t) value.ptr, value_len, &str_len_ptr);
-        return to!string(value[0 .. str_len_ptr]);
+                cast(pointer_t) value.ptr, (value.length - 1), &str_len_ptr);
+        return str_conv(value.ptr);
     }
 
     public @property void current_catalog(string input)
     {
-        char[] value = to!(char[])(toStringz(input));
-        //value ~= '\0';
+        SQLCHAR[] value = to!(SQLCHAR[])(toStringz(input));
         SQLINTEGER len = value.length;
         this.setAttribute(ConnectionAttributes.CurrentCatalog, cast(pointer_t) value.ptr, len);
     }
@@ -566,7 +563,7 @@ class Connection : ConnectionHandle
 
     public @property string data_source_name()
     {
-        SQLCHAR[64 + 1] value;
+        SQLCHAR[1024 + 1] value;
         this.getInfo(InfoType.DataSourceName, cast(pointer_t) value.ptr, value.length);
         return str_conv(value.ptr);
     }
@@ -597,27 +594,6 @@ class Connection : ConnectionHandle
         SQLUINTEGER value;
         this.getInfo(InfoType.InformationSchemaViews, &value);
         return value;
-    }
-
-    public @property size_t max_async_concurrent_statements()
-    {
-        SQLUINTEGER value;
-        this.getInfo(InfoType.MaxAsyncConcurrentStatements, &value);
-        return to!size_t(value);
-    }
-
-    public @property ushort max_concurrent_activities()
-    {
-        SQLUSMALLINT value;
-        this.getInfo(InfoType.MaxAsyncConcurrentStatements, &value);
-        return to!ushort(value);
-    }
-
-    public @property size_t max_driver_connections()
-    {
-        SQLUSMALLINT value;
-        this.getInfo(InfoType.MaxDriverConnections, &value);
-        return to!ushort(value);
     }
 
     public @property ODBCInterfaceConformance odbc_interface_conformance()
@@ -667,14 +643,14 @@ class Connection : ConnectionHandle
     ////dbms product getInfo properties
     public @property string database_name()
     {
-        SQLCHAR[64 + 1] value;
+        SQLCHAR[1024 + 1] value;
         this.getInfo(InfoType.DatabaseName, cast(pointer_t) value.ptr, value.length);
         return str_conv(value.ptr);
     }
 
     public @property string dbms_name()
     {
-        SQLCHAR[64 + 1] value;
+        SQLCHAR[1024 + 1] value;
         this.getInfo(InfoType.DBMSName, cast(pointer_t) value.ptr, value.length);
         return str_conv(value.ptr);
     }
@@ -719,7 +695,7 @@ class Connection : ConnectionHandle
     {
         SQLCHAR[1 + 1] value;
         this.getInfo(InfoType.DataSourceReadOnly, cast(pointer_t) value.ptr, value.length);
-        return !(str_conv(value.ptr) == "N");
+        return (value[0] == 'Y');
     }
 
     public @property DefaultTransactionIsolation default_transaction_isolation()
@@ -733,28 +709,28 @@ class Connection : ConnectionHandle
     {
         SQLCHAR[1 + 1] value;
         this.getInfo(InfoType.DescribeParameter, cast(pointer_t) value.ptr, value.length);
-        return !(str_conv(value.ptr) == "N");
+        return (value[0] == 'Y');
     }
 
     public @property bool supports_multiple_result_sets()
     {
         SQLCHAR[1 + 1] value;
         this.getInfo(InfoType.MultipleResultSets, cast(pointer_t) value.ptr, value.length);
-        return !(str_conv(value.ptr) == "N");
+        return (value[0] == 'Y');
     }
 
     public @property bool supports_multiple_active_transactions()
     {
         SQLCHAR[1 + 1] value;
         this.getInfo(InfoType.MultipleActiveTransactions, cast(pointer_t) value.ptr, value.length);
-        return !(str_conv(value.ptr) == "N");
+        return (value[0] == 'Y');
     }
 
     public @property bool need_long_data_length()
     {
         SQLCHAR[1 + 1] value;
         this.getInfo(InfoType.NeedLongDataLength, cast(pointer_t) value.ptr, value.length);
-        return !(str_conv(value.ptr) == "N");
+        return (value[0] == 'Y');
     }
 
     public @property SQLUSMALLINT null_collation()
@@ -808,18 +784,596 @@ class Connection : ConnectionHandle
 
     public @property string user_name()
     {
-        SQLCHAR[64 + 1] value;
-        this.getInfo(InfoType.UserName, cast(pointer_t) value.ptr, value.length);
+        SQLCHAR[] value = new SQLCHAR[this.max_user_name_length + 1];
+        this.getInfo(InfoType.UserName, cast(pointer_t) value.ptr,
+                to!SQLSMALLINT(value.length - 1));
         return str_conv(value.ptr);
     }
 
     //supported SQL getInfo properties
 
+    public @property SQLUINTEGER aggregate_functions()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.AggregateFunctions, cast(pointer_t)&value);
+        return value;
+    }
+
+    public @property SQLUINTEGER alter_domain()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.AlterDomain, cast(pointer_t)&value);
+        return value;
+    }
+
+    public @property SQLUINTEGER alter_table()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.AlterTable, cast(pointer_t)&value);
+        return value;
+    }
+
+    //    public @property SQLUINTEGER ansi_sql_datetime_literals()
+    //    {
+    //        return "";
+    //    }
+
+    public @property CatalogLocation catalog_location()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.CatalogLocation, cast(pointer_t)&value);
+        return to!CatalogLocation(value);
+    }
+
+    public @property bool supports_catalog_name()
+    {
+        SQLCHAR[1 + 1] value;
+        this.getInfo(InfoType.CatalogName, cast(pointer_t) value.ptr, value.length);
+        return (value[0] == 'Y');
+    }
+
+    public @property string catalog_name_separator()
+    {
+        if (this.supports_catalog_name)
+        {
+            SQLCHAR[64 + 1] value;
+            this.getInfo(InfoType.UserName, cast(pointer_t) value.ptr, value.length);
+            return str_conv(value.ptr);
+        }
+        return "";
+    }
+
+    public @property SQLUINTEGER catalog_usage()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.CatalogUsage, cast(pointer_t)&value);
+        return value;
+    }
+
+    public @property bool supports_column_alias()
+    {
+        SQLCHAR[1 + 1] value;
+        this.getInfo(InfoType.ColumnAlias, cast(pointer_t) value.ptr, value.length);
+        return (value[0] == 'Y');
+    }
+
+    public @property SQLUSMALLINT correlation_name()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.CorrelationName, cast(pointer_t)&value);
+        return value;
+    }
+
+    public @property SQLUINTEGER create_assertion()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.CreateAssertion, cast(pointer_t)&value);
+        return value;
+    }
+
+    public @property SQLUINTEGER create_character_set()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.CreateCharacterSet, cast(pointer_t)&value);
+        return value;
+    }
+
+    public @property SQLUINTEGER create_collation()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.CreateCollation, cast(pointer_t)&value);
+        return value;
+    }
+
+    public @property SQLUINTEGER create_domain()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.CreateDomain, cast(pointer_t)&value);
+        return value;
+    }
+
+    public @property SQLUINTEGER create_schema()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.CreateSchema, cast(pointer_t)&value);
+        return value;
+    }
+
+    public @property SQLUINTEGER create_table()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.CreateTable, cast(pointer_t)&value);
+        return value;
+    }
+
+    public @property SQLUINTEGER create_translation()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.CreateTranslation, cast(pointer_t)&value);
+        return value;
+    }
+
+    public @property SQLUINTEGER create_view()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.CreateView, cast(pointer_t)&value);
+        return value;
+    }
+
+    public @property SQLUINTEGER ddl_index()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.DDLIndex, cast(pointer_t)&value);
+        return value;
+    }
+
+    //    public @property string drop_assertion()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string drop_character_set()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string drop_collation()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string drop_domain()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string drop_schema()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string drop_table()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string drop_translation()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string drop_view()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string expressions_in_order_by()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string group_by()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string identifier_case()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string identifier_quote_char()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string index_keywords()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string insert_statement()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string integrity()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string keywords()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string like_escape_clause()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string non_nullable_columns()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string sql_conformance()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string outer_join_capabilities()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string order_by_columns_in_select()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string outer_joins()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string procedures()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string quoted_identifier_case()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string schema_usage()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string special_characters()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string subqueries()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string sql_union()
+    //    {
+    //        return "";
+    //    }
+
     //SQL limits getInfo properties
+
+    public @property size_t max_async_concurrent_statements()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.MaxAsyncConcurrentStatements, &value);
+        return to!size_t(value);
+    }
+
+    public @property size_t max_binary_literal_length()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.MaxBinaryLiteralLength, cast(pointer_t)&value);
+        return to!size_t(value);
+    }
+
+    public @property ushort max_catalog_name_length()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxCatalogNameLength, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property size_t max_char_literal_length()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.MaxCharacterLiteralsLength, cast(pointer_t)&value);
+        return to!size_t(value);
+    }
+
+    public @property ushort max_column_name_length()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxColumnNameLength, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property ushort max_columns_in_group_by()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxColumnsInGroupBy, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property ushort max_columns_in_index()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxColumnsInIndex, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property ushort max_columns_in_order_by()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxColumnsInOrderBy, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property ushort max_columns_in_select()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxColumnsInSelect, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property ushort max_columns_in_table()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxColumnsInTable, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property ushort max_concurrent_activities()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxConcurrentActivities, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property ushort max_cursor_name_length()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxCursorNameLength, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property ushort max_driver_connections()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxDriverConnections, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property ushort max_identifier_length()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxIdentifierLength, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property size_t max_index_size()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.MaxIndexSize, cast(pointer_t)&value);
+        return to!size_t(value);
+    }
+
+    public @property ushort max_procedure_name_length()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxProcedureNameLength, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property size_t max_row_size()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.MaxRowSize, cast(pointer_t)&value);
+        return to!size_t(value);
+    }
+
+    public @property bool max_row_size_includes_long()
+    {
+        SQLCHAR[1 + 1] value;
+        this.getInfo(InfoType.MaxRowSizeIncludesLong, cast(pointer_t) value.ptr, value.length);
+        return (value[0] == 'Y');
+    }
+
+    public @property ushort max_schema_name_length()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxSchemaNameLength, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property size_t max_statement_length()
+    {
+        SQLUINTEGER value;
+        this.getInfo(InfoType.MaxStatementLength, cast(pointer_t)&value);
+        return to!size_t(value);
+    }
+
+    public @property ushort max_table_name_length()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxTableNameLength, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property ushort max_tables_in_select()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxTablesInSelect, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
+
+    public @property ushort max_user_name_length()
+    {
+        SQLUSMALLINT value;
+        this.getInfo(InfoType.MaxUserNameLength, cast(pointer_t)&value);
+        return to!ushort(value);
+    }
 
     //scalar function getInfo properties
 
+    //    public @property string convert_functions()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string numeric_functions()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string string_functions()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string system_functions()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string timedate_add_intervals()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string timedate_diff_intervals()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string timedate_functions()
+    //    {
+    //        return "";
+    //    }
+
     //conversion getInfo properties
+
+    //    public @property string convert_bigint()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_binary()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_bit()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_char()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_date()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_decimal()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_double()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_float()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_integer()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_interval_year_month()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_interval_day_time()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_longvarbinary()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_longvarchar()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_numeric()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_real()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_smallint()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_time()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_timestamp()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_tinyint()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_varbinary()
+    //    {
+    //        return "";
+    //    }
+    //
+    //    public @property string convert_varchar()
+    //    {
+    //        return "";
+    //    }
+
 }
 
 private Connection connection_factory(size_t login_timeout)
