@@ -1090,7 +1090,7 @@ class Connection : ConnectionHandle
         return to!ushort(value);
     }
 
-    public @property size_t max_char_literal_length()
+    public @property size_t max_character_literals_length()
     {
         SQLUINTEGER value;
         this.getInfo(InfoType.MaxCharacterLiteralsLength, cast(pointer_t)&value);
@@ -1475,9 +1475,6 @@ unittest
     writefln("Driver ODBC Version: %s", conn2.driver_odbc_version);
     writefln("Driver Version: %s", conn2.driver_version);
     writefln("Information Schema Views: %s", conn2.information_schema_views);
-    writefln("Max Async Concurrent Statements: %s", conn2.max_async_concurrent_statements);
-    writefln("Max Concurrent Statements: %s", conn2.max_concurrent_activities);
-    writefln("Max Driver Connections: %s", conn2.max_driver_connections);
     writefln("ODBC Interface Conformance: %s", conn2.odbc_interface_conformance);
     writefln("ODBC Version: %s", conn2.odbc_version);
     writefln("Database Name: %s", conn2.database_name);
@@ -1499,6 +1496,20 @@ unittest
     writefln("Transaction Capabilities: %s", conn2.transaction_capable);
     writefln("Transaction Isolation Option: %s", conn2.transaction_isolation_option);
     writefln("User Name: %s", conn2.user_name);
+
+    writefln("Max Async Concurrent Statements: %s", conn2.max_async_concurrent_statements);
+    writefln("Max Binary Literal Length: %s", conn2.max_binary_literal_length);
+    writefln("Max Catalog Name Length: %s", conn2.max_catalog_name_length);
+    writefln("Max Character Literals Length: %s", conn2.max_character_literals_length);
+    writefln("Max Column Name Length: %s", conn2.max_column_name_length);
+    writefln("Max Concurrent Statements: %s", conn2.max_concurrent_activities);
+    writefln("Max Driver Connections: %s", conn2.max_driver_connections);
+    writefln("Max Identifier Length: %s", conn2.max_identifier_length);
+    writefln("Max Row Size: %s", conn2.max_row_size);
+    writefln("Max Schema Name Length: %s", conn2.max_schema_name_length);
+    writefln("Max Statement Length: %s", conn2.max_statement_length);
+    writefln("Max Table Name Length: %s", conn2.max_table_name_length);
+    writefln("Max User Name Length: %s", conn2.max_user_name_length);
 
     writeln("\nCalling SQLTables:");
     auto tables_prep = conn2.tables();
