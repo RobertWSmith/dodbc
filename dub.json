@@ -4,5 +4,19 @@
     "authors" : ["Robert Smith"],
     "homepage" : "https://github.com/RobertWSmith/dodbc",
     "dependencies" : {
+    },
+    "buildTypes" : {
+        "release-optimize" : {
+            "targetType" : "dynamicLibrary",
+            "buildOptions" : ["releaseMode", "optimize", "inline", "noBoundsCheck", "warningsAsErrors", "deprecationErrors"]
+        },
+        "unittest-debugInfo" : {
+            "targetType" : "executable",
+            "buildOptions" : ["debugMode", "coverage", "debugInfoC", "alwaysStackFrame", "unittests", "warningsAsErrors", "deprecationErrors"]
+        },
+        "unittest-profile" : {
+            "targetType" : "executable",
+            "buildOptions": ["debugMode", "coverage", "unittests", "profile", "warningsAsErrors", "deprecationErrors"]
+        }
     }
 }

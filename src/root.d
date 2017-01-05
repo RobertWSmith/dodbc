@@ -21,10 +21,11 @@ import std.typecons; // : Ternary;
 
 debug
 {
-    import std.traits;
+    public import std.stdio;
+    public import std.traits;
 
-    import std.variant;
-    import std.typecons : Tuple;
+    public import std.variant;
+    public import std.typecons : Tuple;
 }
 
 version (unittest)
@@ -171,6 +172,7 @@ package bool evaluate_bitmask(T, U)(T true_val, U eval_val)
 abstract class Identified
 {
     static import uuid = std.uuid;
+
     enum uuid.UUID default_uuid = uuid.UUID("00000000-0000-0000-0000-000000000001");
 
     public static uuid.UUID id;

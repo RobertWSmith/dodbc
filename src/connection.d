@@ -416,17 +416,17 @@ class Connection : ConnectionHandle
     public @property string current_catalog()
     {
         SQLCHAR[] value = new SQLCHAR[this.max_catalog_name_length + 1];
-        SQLINTEGER str_len_ptr;
+        SQLINTEGER value_len = to!SQLINTEGER(value.length - 1);
 
         this.getAttribute(ConnectionAttributes.CurrentCatalog,
-                cast(pointer_t) value.ptr, (value.length - 1), &str_len_ptr);
+                cast(pointer_t) value.ptr, value_len, cast(SQLINTEGER*) null);
         return str_conv(value.ptr);
     }
 
     public @property void current_catalog(string input)
     {
-        SQLCHAR[] value = to!(SQLCHAR[])(toStringz(input));
-        SQLINTEGER len = value.length;
+        SQLCHAR[] value = str_conv(input);
+        SQLINTEGER len = to!SQLINTEGER(value.length);
         this.setAttribute(ConnectionAttributes.CurrentCatalog, cast(pointer_t) value.ptr, len);
     }
 
@@ -503,9 +503,8 @@ class Connection : ConnectionHandle
 
     public @property void tracefile(string input)
     {
-        char[] value = to!(char[])(input) ~ '\0';
-        SQLINTEGER value_len = value.length;
-        this.setAttribute(ConnectionAttributes.Tracefile, cast(pointer_t) value.ptr, value_len);
+        SQLCHAR[] value = str_conv(input.ptr);
+        this.setAttribute(ConnectionAttributes.Tracefile, cast(pointer_t) value.ptr, SQL_NTS);
     }
 
     //public @property string translate_lib()

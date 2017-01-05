@@ -413,8 +413,8 @@ class Statement : StatementHandle
         }
 
         this._queries ~= query;
-        SQLCHAR[] sql = to!(SQLCHAR[])(toStringz(this._queries[$ - 1]));
-        SQLINTEGER sql_len = query.length;
+        SQLCHAR[] sql = str_conv(query);
+        SQLINTEGER sql_len = to!SQLINTEGER(query.length);
 
         this.sqlreturn = SQLPrepare(this.handle, sql.ptr, sql_len);
 
@@ -464,7 +464,8 @@ class Statement : StatementHandle
         char_buffer[] = '\0';
         this.getData(1, SQL_C_CHAR, cast(pointer_t) char_buffer.ptr,
                 to!SQLLEN(char_buffer.length - 1), &strlen_or_ind_ptr);
-        output.type_name = to!string(char_buffer.ptr.fromStringz);
+        output.type_name = str_conv(char_buffer.ptr);
+        // to!string(char_buffer.ptr.fromStringz);
 
         short_buffer = 0;
         this.getData(2, SQL_C_SSHORT, cast(pointer_t)&short_buffer,
@@ -742,6 +743,73 @@ unittest
     prepped.execute();
 
     writeln("End Statement Tests: \n\n");
+}
+
+class Result : Identified
+{
+    private Statement _stmt;
+
+    this(Statement stmt, uuid.UUID id = generateUUID("Result"))
+    {
+        this.statement = stmt;
+        super(id);
+    }
+
+    public @property Statement statement()
+    {
+        return this._stmt;
+    }
+
+    public @property void statement(Statement input)
+    {
+        this._stmt = input;
+    }
+
+    public @property size_t rowset_size()
+    {
+        return 0;
+    }
+
+    public @property size_t affected_rows()
+    {
+        return 0;
+    }
+
+    public @property size_t rows()
+    {
+        return 0;
+    }
+
+    public @property ushort columns()
+    {
+        return 0;
+    }
+
+    public @property size_t position()
+    {
+        return 0;
+    }
+
+    // foreach property
+    public @property sql_variant[] front()
+    {
+        sql_variant[] output;
+        return output;
+    }
+
+    // foreach property
+    public @property sql_variant[] popFront()
+    {
+        sql_variant[] output;
+        return output;
+    }
+
+    // foreach property
+    public @property bool empty()
+    {
+        return true;
+    }
+
 }
 
 //interface ColumnParameter

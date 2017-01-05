@@ -58,13 +58,25 @@ public alias alias_seq =
 // dfmt on
 
 public alias sql_algebriaic = Algebraic!(alias_seq);
-public alias sql_variant = VariantN!(maxSize!(alias_seq), alias_seq);
+public alias sql_variant = Variant;
+
+
+//version (X86_64)
+//{
+//    public alias sql_variant = VariantN!64LU.VariantN;
+//}
+//else
+//{
+//    public alias sql_variant = Variant;
+//}
 
 unittest
 {
     import std.stdio;
 
-    writefln("Max alias_seq size:      %s", maxSize!alias_seq);
+    writefln("Size of sql_algebraic:    %s", sql_algebriaic.sizeof);
+    writefln("Size of sql_variant:      %s", sql_variant.sizeof);
+    writeln("\n\n");
 }
 
 //struct Bytes
