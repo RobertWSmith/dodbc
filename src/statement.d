@@ -16,19 +16,162 @@ import dodbc.connection;
 
 import std.conv : to;
 import std.string : toStringz;
+import std.traits : isPointer, PointerTarget, Unqual;
 import std.typecons : Nullable;
+
+//import std.experimental.allocator;
 
 static import uuid = std.uuid;
 
-//struct DataBinding
-//{
-//    ushort target_type;
-//    ubyte[] value_ptr;
-//    size_t buffer_length;
-//    size_t string_len_or_ind;
-//}
+struct LocalTypeInfo(LocalType _type)
+{
+    static LocalType type;
 
-//alias Binding = DataBinding;
+    // text
+    static if (type == LocalType.Char)
+    {
+        alias local_type = SQLCHAR*;
+    }
+    else static if (type == LocalType.Wchar)
+    {
+        alias local_type = SQLWCHAR*;
+    }
+
+    // bookmark
+    else static if (type == LocalType.Bookmark)
+    {
+        alias local_type = BOOKMARK;
+    }
+    else static if (type == LocalType.Varbookmark)
+    {
+        alias local_type = BOOKMARK;
+    }
+
+    // integral
+    else static if (type == LocalType.SignedTinyInt)
+    {
+        alias local_type = SQLSCHAR;
+    }
+    else static if (type == LocalType.UnsignedTinyInt)
+    {
+        alias local_type = SQLCHAR;
+    }
+    else static if (type == LocalType.SignedShort)
+    {
+        alias local_type = SQLSMALLINT;
+    }
+    else static if (type == LocalType.UnsignedShort)
+    {
+        alias local_type = SQLUSMALLINT;
+    }
+    else static if (type == LocalType.SignedLong)
+    {
+        alias local_type = SQLINTEGER;
+    }
+    else static if (type == LocalType.UnsignedLong)
+    {
+        alias local_type = SQLUINTEGER;
+    }
+    else static if (type == LocalType.SignedBigInteger)
+    {
+        alias local_type = SQLBIGINT;
+    }
+    else static if (type == LocalType.UnsignedBigInteger)
+    {
+        alias local_type = SQLUBIGINT;
+    }
+
+    // floating point
+    else static if (type == LocalType.Float)
+    {
+        alias local_type = SQLREAL;
+    }
+    else static if (type == LocalType.Double)
+    {
+        alias local_type = SQLDOUBLE;
+    }
+    else static if (type == LocalType.Numeric)
+    {
+        alias local_type = SQL_NUMERIC_STRUCT;
+    }
+
+    // datetime
+    else static if (type == LocalType.DateType)
+    {
+        alias local_type = SQL_DATE_STRUCT;
+    }
+    else static if (type == LocalType.TimeType)
+    {
+        alias local_type = SQL_TIME_STRUCT;
+    }
+    else static if (type == LocalType.TimestampType)
+    {
+        alias local_type = SQL_TIMESTAMP_STRUCT;
+    }
+
+    // dfmt off
+    // intervals
+    else static if (
+            (type == LocalType.IntervalYear) || 
+            (type == LocalType.IntervalMonth) || 
+            (type == LocalType.IntervalDay) || 
+            (type == LocalType.IntervalHour) || 
+            (type == LocalType.IntervalMinute) || 
+            (type == LocalType.IntervalSecond) || 
+            (type == LocalType.IntervalYearToMonth) || 
+            (type == LocalType.IntervalDayToHour) || 
+            (type == LocalType.IntervalDayToMinute) || 
+            (type == LocalType.IntervalDayToSecond) || 
+            (type == LocalType.IntervalHourToMinute) || 
+            (type == LocalType.IntervalHourToSecond) || 
+            (type == LocalType.IntervalMinuteToSecond)
+        )
+    {
+        alias local_type = SQL_INTERVAL_STRUCT;
+    }
+    // dfmt on
+
+    static if (isPointer!local_type)
+        alias unqual_local_type = Unqual!(PointerTarget!local_type);
+    else
+        alias unqual_local_type = Unqual!local_type;
+
+    @property size_t sizeof()
+    {
+        return unqual_local_type.sizeof;
+    }
+
+}
+
+struct SqlTypeInfo
+{
+    SQLType sql_type;
+
+    //    @oroperty size_t sizeof()
+    //    {
+    //
+    //    }
+}
+
+struct DataBinding
+{
+    //    static TypePair data_types;
+    pointer_t target_value_ptr;
+
+    //    @property SQLINTEGER buffer_length()
+    //    {
+    //
+    //    }
+
+    SQLINTEGER buffer_length;
+    SQLLEN strlen_or_ind;
+
+    //    this(LocalType _local_type, SQLType _sql_type)
+    //    {
+    //        this.data_types = TypePair(_local_type, _sql_type);
+    //    }
+
+}
 
 enum DescriptionType
 {
@@ -101,7 +244,6 @@ class Statement : StatementHandle
 
     public ~this()
     {
-        // this.close();
         this.free();
     }
 
@@ -110,17 +252,39 @@ class Statement : StatementHandle
         this.sqlreturn = SQLFreeStmt(this.handle, input);
     }
 
-    //    public void open()
-    //    {
-    //    }
+    public @property string cursor_name()
+    {
+        alias sql_func = SQLGetCursorName;
+        debug
+        {
+            this.sql_function = fullyQualifiedName!sql_func;
+        }
 
-    //    public void close()
-    //    {
-    //    }
+        SQLCHAR[] value = new SQLCHAR[((this.connection.max_cursor_name_length) + 1)];
+        SQLSMALLINT buffer_len = to!SQLSMALLINT(value.length - 1);
 
-    //    public void cancel()
-    //    {
-    //    }
+        this.sqlreturn = sql_func(this.handle, value.ptr, buffer_len, null);
+
+        debug this.debugger();
+
+        return str_conv(value.ptr);
+    }
+
+    public @property void cursor_name(string input)
+    {
+        alias sql_func = SQLSetCursorName;
+        debug
+        {
+            this.sql_function = fullyQualifiedName!sql_func;
+
+            this.insert_kwarg("input", input);
+        }
+
+        SQLCHAR[] value = str_conv(input);
+        this.sqlreturn = sql_func(this.handle, value.ptr, SQL_NTS);
+
+        debug this.debugger();
+    }
 
     /// SQLTables
     public Prepared tables(string catalog = null, string schema = null,
@@ -416,7 +580,7 @@ class Statement : StatementHandle
         SQLCHAR[] sql = str_conv(query);
         SQLINTEGER sql_len = to!SQLINTEGER(query.length);
 
-        this.sqlreturn = SQLPrepare(this.handle, sql.ptr, sql_len);
+        this.sqlreturn = sql_func(this.handle, sql.ptr, sql_len);
 
         debug this.debugger();
 
@@ -436,10 +600,9 @@ class Statement : StatementHandle
         debug this.debugger();
     }
 
-    private void p_getTypeInfo(SQLType type)
+    private Prepared p_getTypeInfo(SQLType type)
     {
         alias sql_func = SQLGetTypeInfo;
-
         debug
         {
             this.sql_function = fullyQualifiedName!sql_func;
@@ -449,34 +612,26 @@ class Statement : StatementHandle
         this.sqlreturn = sql_func(this.handle, to!SQLSMALLINT(type));
 
         debug this.debugger();
+
+        return new Prepared(this);
     }
 
-    public SQLTypeInfo getTypeInfo(SQLType type)
+    public SQLTypeInfo[] getTypeInfo(SQLType type)
     {
-        SQLTypeInfo output;
-        output.type = type;
-        output.data_type = type;
-        SQLLEN strlen_or_ind_ptr;
-        SQLCHAR[256 + 1] char_buffer;
-        SQLSMALLINT short_buffer;
+
+        Prepared prep = this.p_getTypeInfo(type);
+        Description[] descr = prep.describeParamters();
+
+        SQLTypeInfo[] output;
+        SQLCHAR[] char_buffer = new SQLCHAR[1024 + 1];
+        SQLSMALLINT smallint_buffer;
         SQLINTEGER int_buffer;
-
-        char_buffer[] = '\0';
-        this.getData(1, SQL_C_CHAR, cast(pointer_t) char_buffer.ptr,
-                to!SQLLEN(char_buffer.length - 1), &strlen_or_ind_ptr);
-        output.type_name = str_conv(char_buffer.ptr);
-        // to!string(char_buffer.ptr.fromStringz);
-
-        short_buffer = 0;
-        this.getData(2, SQL_C_SSHORT, cast(pointer_t)&short_buffer,
-                to!SQLLEN(SQLSMALLINT.sizeof), &strlen_or_ind_ptr);
-        output.type = to!SQLType(short_buffer);
 
         return output;
     }
 
     private void getData(SQLUSMALLINT col_or_param_nbr, SQLSMALLINT target_type,
-            pointer_t value_ptr, SQLLEN buffer_len = 0, SQLLEN* strlen_or_ind_ptr = null)
+            pointer_t value_ptr, SQLINTEGER buffer_len = 0, SQLINTEGER* strlen_or_ind_ptr = null)
     {
         alias sql_func = SQLGetData;
         debug
@@ -487,7 +642,7 @@ class Statement : StatementHandle
             this.insert_kwarg("buffer_len", buffer_len);
         }
 
-        this.sqlreturn = SQLGetData(this.handle, col_or_param_nbr, target_type,
+        this.sqlreturn = sql_func(this.handle, col_or_param_nbr, target_type,
                 value_ptr, buffer_len, strlen_or_ind_ptr);
 
         debug this.debugger();
@@ -524,14 +679,11 @@ class Statement : StatementHandle
     public @property void timeout(size_t input)
     {
     }
-
 }
 
 class Prepared : Identified
 {
     private Statement _stmt;
-    //    private Column[ushort] _columns;
-    //    private Parameter[ushort] _parameters;
 
     @disable this();
     package this(Statement stmt)
@@ -551,7 +703,7 @@ class Prepared : Identified
 
     public @property handle_t handle()
     {
-        return (this.statement).handle;
+        return ((this.statement).handle);
     }
 
     public @property void sqlreturn(SQLRETURN input)
@@ -679,7 +831,7 @@ class Prepared : Identified
             this.statement.insert_kwarg("columnNbr", columnNbr);
         }
 
-        this.sqlreturn = SQLDescribeCol(this.handle, columnNbr, columnNamePtr, bufferLength,
+        this.sqlreturn = sql_func(this.handle, columnNbr, columnNamePtr, bufferLength,
                 nameLengthPtr, dataTypePtr, columnSizePtr, decimalDigitsPtr, nullablePtr);
 
         debug this.statement.debugger();
@@ -697,6 +849,24 @@ class Prepared : Identified
 
         return Description(DescriptionType.Column, columnNbr, name.ptr,
                 data_type, column_sz, decimal_digits, nullable);
+    }
+
+    private void p_columnAttribute(SQLUSMALLINT columnNbr,
+            ColumnAttributes fieldIdentifier, pointer_t characterAttributePtr,
+            SQLSMALLINT bufferLen, SQLSMALLINT* stringLengthPtr, SQLLEN* numericAttributePtr)
+    {
+        alias sql_func = SQLColAttribute;
+        debug
+        {
+            this.statement.sql_function = fullyQualifiedName!sql_func;
+            this.statement.insert_kwarg("columnNbr", columnNbr);
+            this.statement.insert_kwarg("fieldIdentifier", fieldIdentifier);
+        }
+
+        this.sqlreturn = sql_func(this.handle, columnNbr, to!SQLUSMALLINT(fieldIdentifier),
+                characterAttributePtr, bufferLen, stringLengthPtr, numericAttributePtr);
+
+        debug this.statement.debugger();
     }
 
     public Description[] describeColumns()
@@ -717,6 +887,17 @@ class Prepared : Identified
     {
         (this.statement).execute();
     }
+
+    public DataBinding bind_column(ushort columnNbr)
+    {
+        return DataBinding();
+    }
+
+    public DataBinding bind_parameter(ushort parameterNbr)
+    {
+        return DataBinding();
+    }
+
 }
 
 unittest

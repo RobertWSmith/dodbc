@@ -18,18 +18,9 @@ import core.stdc.config;
 alias handle_t = SQLHANDLE;
 alias pointer_t = SQLPOINTER;
 
-version (X86_64)
-{
-    alias SQLULEN = ulong;
-    alias SQLLEN = long;
-    alias BOOKMARK = SQLULEN;
-}
-else
-{
-    alias SQLULEN = uint;
-    alias SQLLEN = int;
-    alias BOOKMARK = SQLULEN;
-}
+alias SQLULEN = SQLUINTEGER;
+alias SQLLEN = SQLINTEGER;
+alias BOOKMARK = SQLULEN;
 
 private enum comp(alias a, alias b) = (a).sizeof < (b).sizeof;
 
@@ -59,7 +50,6 @@ public alias alias_seq =
 
 public alias sql_algebriaic = Algebraic!(alias_seq);
 public alias sql_variant = Variant;
-
 
 //version (X86_64)
 //{

@@ -5,7 +5,7 @@ version (Windows) import core.sys.windows.windows;
 import etc.c.odbc.sql;
 import etc.c.odbc.sqlext;
 import etc.c.odbc.sqltypes;
-import etc.c.odbc.sqlucode;
+//import etc.c.odbc.sqlucode;
 
 version (Windows) pragma(lib, "odbc32");
 
@@ -107,13 +107,13 @@ enum ConnectionAttributes : SQLINTEGER
     ResetConnection = 116, // SQL_ATTR_RESET_CONNECTION, // 116
     AsyncDBCFunctionsEnable = 117, // SQL_ATTR_ASYNC_DBC_FUNCTIONS_ENABLE, // 117
 
-    AsyncEnable = SQL_ATTR_ASYNC_ENABLE, 
+    AsyncEnable = SQL_ATTR_ASYNC_ENABLE,
     AutoIPD = SQL_ATTR_AUTO_IPD,
 
     MetadataID = SQL_ATTR_METADATA_ID,
 
     // AsyncDBCEvent = SQL_ATTR_ASYNC_DBC_EVENT,
-    
+
     // AsyncDBCPcallback = SQL_ATTR_ASYNC_DBC_PCALLBACK,
     // AsyncDBCPcontext = SQL_ATTR_ASYNC_DBC_PCALLBACK,
     // DBCInfoToken = SQL_ATTR_DBC_INFO_TOKEN,
@@ -234,7 +234,7 @@ enum UseBookmarks
 }
 
 // dfmt off
-enum DescriptorFields
+enum DescriptorFields : SQLSMALLINT
 {
     Count = SQL_DESC_COUNT, // 1001
     Type = SQL_DESC_TYPE, // 1002
@@ -348,9 +348,11 @@ enum DiagnosticsDynamicFunction
 }
 // dfmt on
 
-enum SQLType
+enum SQLType : SQLSMALLINT
 {
+    AllTypes = SQL_ALL_TYPES, //
     Unknown = SQL_UNKNOWN_TYPE, // 0
+    Null = SQL_TYPE_NULL,
 
     TinyInteger = SQL_TINYINT, // (-6)
     SmallInteger = SQL_SMALLINT, // 5
@@ -367,10 +369,10 @@ enum SQLType
     Char = SQL_CHAR, // 1
     Varchar = SQL_VARCHAR, // 12
     LongVarchar = SQL_LONGVARCHAR, // (-1)
-    Unicode = SQL_UNICODE, //SQL_WCHAR, //SQL_UNICODE
-    UnicodeVarchar = SQL_UNICODE_VARCHAR, //SQL_WVARCHAR, //SQL_UNICODE_VARCHAR
-    UnicodeLongvarchar = SQL_UNICODE_LONGVARCHAR, //SQL_WLONGVARCHAR, //SQL_UNICODE_LONGVARCHAR
-    UnicodeChar = SQL_UNICODE_CHAR, //SQL_WCHAR, //SQL_UNICODE_CHAR
+    Unicode = SQL_UNICODE, //SQL_WCHAR
+    UnicodeVarchar = SQL_UNICODE_VARCHAR, //SQL_WVARCHAR
+    UnicodeLongvarchar = SQL_UNICODE_LONGVARCHAR, //SQL_WLONGVARCHAR
+    UnicodeChar = SQL_UNICODE_CHAR, //SQL_WCHAR
 
     // Date = SQL_DATE, // 9
     // Time = SQL_TIME, // 10
@@ -388,7 +390,6 @@ enum SQLType
 
     Bit = SQL_BIT, // (-7)
     GUID = SQL_GUID, // (-11)
-    Null = SQL_TYPE_NULL,
 }
 
 //alias ODBCDataType = SQLType;
@@ -397,30 +398,55 @@ version (X86)
 {
     private enum p_Bookmark = SQL_C_BOOKMARK; // SQL_C_UBIGINT,
 }
-else
+version (X86_64)
 {
     private enum p_Bookmark = SQL_C_UBIGINT; // SQL_C_UBIGINT,
 }
 
-enum LocalType
+enum LocalType : SQLSMALLINT
 {
     Default = SQL_C_DEFAULT, // 99
     GUID = SQL_C_GUID, // SQL_GUID
     Null = SQL_TYPE_NULL,
+    Binary = SQL_C_BINARY, // SQL_BINARY
+    Bit = SQL_C_BIT, // SQL_BIT
+
+    Bookmark = p_Bookmark,
+    Varbookmark = SQL_C_BINARY,
+
     Char = SQL_C_CHAR, // SQL_CHAR (SQL Types: CHAR, VARCHAR, DECIMAL, NUMERIC)
-    Long = SQL_C_LONG, // SQL_INTEGER (INTEGER)
+    Wchar = SQL_C_WCHAR, // SQL_WCHAR
+
+    TinyInt = SQL_C_TINYINT, // SQL_TINYINT
+    SignedTinyInt = SQL_C_STINYINT, // (SQL_TINYINT + SQL_SIGNED_OFFSET) - SIGNED TINYINT
+    UnsignedTinyInt = SQL_C_UTINYINT, // (SQL_TINYINT + SQL_UNSIGNED_OFFSET) - UNSIGNED TINYINT
+
     Short = SQL_C_SHORT, // SQL_SMALLINT (SMALLINT)
+    SignedShort = SQL_C_SSHORT, // (SQL_C_SHORT + SQL_SIGNED_OFFSET) - SIGNED_SHORT
+    UnsignedShort = SQL_C_USHORT, // (SQL_C_SHORT + SQL_UNSIGNED_OFFSET) - UNSIGNED SHORT
+
+    Long = SQL_C_LONG, // SQL_INTEGER (INTEGER)
+    SignedLong = SQL_C_SLONG, // (SQL_C_LONG + SQL_SIGNED_OFFSET) - SIGNED INTEGER
+    UnsignedLong = SQL_C_ULONG, // (SQL_C_LONG + SQL_UNSIGNED_OFFSET) - UNSIGNED INTEGER
+
+    //    BigInteger = SQL_C_BIGINT,
+    SignedBigInteger = SQL_C_SBIGINT, // (SQL_BIGINT + SQL_SIGNED_OFFSET) - SIGNED BIGINT
+    UnsignedBigInteger = SQL_C_UBIGINT, // (SQL_BIGINT + SQL_UNSIGNED_OFFSET) - UNSIGNED BIGINT
+
     Float = SQL_REAL, // SQL_C_REAL, // SQL_REAL (REAL)
     Double = SQL_C_DOUBLE, // SQL_DOUBLE (FLOAT, DOUBLE)
     Numeric = SQL_C_NUMERIC, // SQL_NUMERIC
+
     SignedOffset = SQL_SIGNED_OFFSET, // (-20)
     UnsignedOffset = SQL_UNSIGNED_OFFSET, // (-22)
-    Date = SQL_C_DATE, // SQL_DATE
-    Time = SQL_C_TIME, // SQL_TIME
-    Timestamp = SQL_C_TIMESTAMP, // SQL_TIMESTAMP
+
+    //    Date = SQL_C_DATE, // SQL_DATE
+    //    Time = SQL_C_TIME, // SQL_TIME
+    //    Timestamp = SQL_C_TIMESTAMP, // SQL_TIMESTAMP
     DateType = SQL_C_TYPE_DATE, // SQL_TYPE_DATE
     TimeType = SQL_C_TYPE_TIME, // SQL_TYPE_TIME
     TimestampType = SQL_C_TYPE_TIMESTAMP, // SQL_TYPE_TIMESTAMP
+
     IntervalYear = SQL_C_INTERVAL_YEAR, // SQL_INTERVAL_YEAR
     IntervalMonth = SQL_C_INTERVAL_MONTH, // SQL_INTERVAL_MONTH
     IntervalDay = SQL_C_INTERVAL_DAY, // SQL_INTERVAL_DAY
@@ -434,19 +460,6 @@ enum LocalType
     IntervalHourToMinute = SQL_C_INTERVAL_HOUR_TO_MINUTE, // SQL_INTERVAL_HOUR_TO_MINUTE
     IntervalHourToSecond = SQL_C_INTERVAL_HOUR_TO_SECOND, // SQL_INTERVAL_HOUR_TO_SECOND
     IntervalMinuteToSecond = SQL_C_INTERVAL_MINUTE_TO_SECOND, // SQL_INTERVAL_MINUTE_TO_SECOND
-    Binary = SQL_C_BINARY, // SQL_BINARY
-    Bit = SQL_C_BIT, // SQL_BIT
-    SignedBigint = SQL_C_SBIGINT, // (SQL_BIGINT + SQL_SIGNED_OFFSET) - SIGNED BIGINT
-    UnsignedBigint = SQL_C_UBIGINT, // (SQL_BIGINT + SQL_UNSIGNED_OFFSET) - UNSIGNED BIGINT
-    Tinyint = SQL_C_TINYINT, // SQL_TINYINT
-    SignedLong = SQL_C_SLONG, // (SQL_C_LONG + SQL_SIGNED_OFFSET) - SIGNED INTEGER
-    SignedShort = SQL_C_SSHORT, // (SQL_C_SHORT + SQL_SIGNED_OFFSET) - SIGNED_SHORT
-    SignedTinyint = SQL_C_STINYINT, // (SQL_TINYINT + SQL_SIGNED_OFFSET) - SIGNED TINYINT
-    UnsignedLong = SQL_C_ULONG, // (SQL_C_LONG + SQL_UNSIGNED_OFFSET) - UNSIGNED INTEGER
-    UnsignedShort = SQL_C_USHORT, // (SQL_C_SHORT + SQL_UNSIGNED_OFFSET) - UNSIGNED SHORT
-    UnsignedTinyint = SQL_C_UTINYINT, // (SQL_TINYINT + SQL_UNSIGNED_OFFSET) - UNSIGNED TINYINT
-    Bookmark = p_Bookmark,
-    Varbookmark = SQL_C_BINARY,
 }
 
 //alias LocalDataType = LocalType;
@@ -495,14 +508,14 @@ enum FreeStatement : SQLUSMALLINT
 // dfmt off
 enum InfoType // SQLGetInfo
 {
-    AccessibleProcedures = SQL_ACCESSIBLE_PROCEDURES, // 
-    AccessibleTables = SQL_ACCESSIBLE_TABLES, // 
+    AccessibleProcedures = SQL_ACCESSIBLE_PROCEDURES, //
+    AccessibleTables = SQL_ACCESSIBLE_TABLES, //
     ActiveEnvironments = SQL_ACTIVE_ENVIRONMENTS, // 116
     ActiveConnections = 0, // SQL_ACTIVE_CONNECTIONS, // 0 -- MAX_DRIVER_CONNECTIONS
     ActiveStatements = 1, // SQL_ACTIVE_STATEMENTS, // 1 -- MAX_CONCURRENT_ACTIVITIES
     AggregateFunctions = SQL_AGGREGATE_FUNCTIONS, // 169
 
-    AlterTable = SQL_ALTER_TABLE, // 
+    AlterTable = SQL_ALTER_TABLE, //
     AlterDomain = SQL_ALTER_DOMAIN, // 117
 
     AsyncMode = SQL_ASYNC_MODE, // 10021
@@ -550,29 +563,29 @@ enum InfoType // SQLGetInfo
     ConvertWlongvarchar = SQL_CONVERT_WLONGVARCHAR, // 125
     ConvertWvarchar = SQL_CONVERT_WVARCHAR, // 126
 
-    CreateAssertion = SQL_CREATE_ASSERTION, // 127  
+    CreateAssertion = SQL_CREATE_ASSERTION, // 127
     CreateCharacterSet = SQL_CREATE_CHARACTER_SET, // 128
-    CreateCollation = SQL_CREATE_COLLATION, // 
+    CreateCollation = SQL_CREATE_COLLATION, //
     CreateDomain = SQL_CREATE_DOMAIN, // 130
     CreateSchema = SQL_CREATE_SCHEMA, // 131
     CreateTable = SQL_CREATE_TABLE, // 132
     CreateTranslation = SQL_CREATE_TRANSLATION, // 133
     CreateView = SQL_CREATE_VIEW, // 134
 
-    CursorCommitBehavior = SQL_CURSOR_COMMIT_BEHAVIOR, // 
-    CursorSensitivity = SQL_CURSOR_SENSITIVITY, // 
+    CursorCommitBehavior = SQL_CURSOR_COMMIT_BEHAVIOR, //
+    CursorSensitivity = SQL_CURSOR_SENSITIVITY, //
     CursorRollbackBehavior = 24, // SQL_CURSOR_ROLLBACK_BEHAVIOR, // 24
 
-    DataSourceName = SQL_DATA_SOURCE_NAME, // 
-    DataSourceReadOnly = SQL_DATA_SOURCE_READ_ONLY, // 
+    DataSourceName = SQL_DATA_SOURCE_NAME, //
+    DataSourceReadOnly = SQL_DATA_SOURCE_READ_ONLY, //
     DatetimeLiterals = SQL_DATETIME_LITERALS, // 119
 
     DatabaseName = 16, //SQL_DATABASE_NAME
-    DBMSName = SQL_DBMS_NAME, // 
-    DBMSVersion = SQL_DBMS_VER, 
-    DDLIndex = SQL_DDL_INDEX, // 170 
-    DefaultTransactionIsolation = SQL_DEFAULT_TXN_ISOLATION, // 
-    DescribeParameter = SQL_DESCRIBE_PARAMETER, 
+    DBMSName = SQL_DBMS_NAME, //
+    DBMSVersion = SQL_DBMS_VER,
+    DDLIndex = SQL_DDL_INDEX, // 170
+    DefaultTransactionIsolation = SQL_DEFAULT_TXN_ISOLATION, //
+    DescribeParameter = SQL_DESCRIBE_PARAMETER,
     DMVersion = SQL_DM_VER, // 171
 
     DriverConnection = 3, // SQL_DRIVER_HDBC, // 3
@@ -601,17 +614,17 @@ enum InfoType // SQLGetInfo
     ForwardOnlyCursorAttributes1 = SQL_FORWARD_ONLY_CURSOR_ATTRIBUTES1, // 146
     ForwardOnlyCursorAttributes2 = SQL_FORWARD_ONLY_CURSOR_ATTRIBUTES2, // 147
 
-    GetDataExtensions = SQL_GETDATA_EXTENSIONS, // 
+    GetDataExtensions = SQL_GETDATA_EXTENSIONS, //
     GroupBy = 88, // SQL_GROUP_BY, // 88
 
-    IdentifierCase = SQL_IDENTIFIER_CASE, // 
-    IdentifierQuoteChar = SQL_IDENTIFIER_QUOTE_CHAR, // 
+    IdentifierCase = SQL_IDENTIFIER_CASE, //
+    IdentifierQuoteChar = SQL_IDENTIFIER_QUOTE_CHAR, //
     IndexKeywords = 148, // SQL_INDEX_KEYWORKDS, // 148
     InformationSchemaViews = SQL_INFO_SCHEMA_VIEWS, // 149
     InsertStatement = SQL_INSERT_STATEMENT, // 172
-    Integrity = SQL_INTEGRITY, // 73 
+    Integrity = SQL_INTEGRITY, // 73
 
-    Keywords = 89, // SQL_KEYWORDS, // 89 
+    Keywords = 89, // SQL_KEYWORDS, // 89
     KeysetCursorAttributes1 = SQL_KEYSET_CURSOR_ATTRIBUTES1, // 150
     KeysetCursorAttributes2 = SQL_KEYSET_CURSOR_ATTRIBUTES2, // 151
 
@@ -620,43 +633,43 @@ enum InfoType // SQLGetInfo
 
     MaxAsyncConcurrentStatements = SQL_MAX_ASYNC_CONCURRENT_STATEMENTS, // 10022
     MaxBinaryLiteralLength = 112, // SQL_MAX_BINARY_LITERAL_LEN, // 112
-    
-    MaxCatalogNameLength = SQL_MAX_CATALOG_NAME_LEN, // 
+
+    MaxCatalogNameLength = SQL_MAX_CATALOG_NAME_LEN, //
     MaxCharacterLiteralsLength = 108, // SQL_MAX_CHAR_LITERAL_LEN, // 108
-    MaxColumnNameLength = SQL_MAX_COLUMN_NAME_LEN, // 
-    MaxColumnsInGroupBy = SQL_MAX_COLUMNS_IN_GROUP_BY, // 
+    MaxColumnNameLength = SQL_MAX_COLUMN_NAME_LEN, //
+    MaxColumnsInGroupBy = SQL_MAX_COLUMNS_IN_GROUP_BY, //
     MaxColumnsInIndex = SQL_MAX_COLUMNS_IN_INDEX, //
-    MaxColumnsInOrderBy = SQL_MAX_COLUMNS_IN_ORDER_BY, // 
-    MaxColumnsInSelect = SQL_MAX_COLUMNS_IN_SELECT, // 
-    MaxColumnsInTable = SQL_MAX_COLUMNS_IN_TABLE, // 
-    MaxConcurrentActivities = SQL_MAX_CONCURRENT_ACTIVITIES, // 
-    MaxCursorNameLength = SQL_MAX_CURSOR_NAME_LEN, // 
-    
+    MaxColumnsInOrderBy = SQL_MAX_COLUMNS_IN_ORDER_BY, //
+    MaxColumnsInSelect = SQL_MAX_COLUMNS_IN_SELECT, //
+    MaxColumnsInTable = SQL_MAX_COLUMNS_IN_TABLE, //
+    MaxConcurrentActivities = SQL_MAX_CONCURRENT_ACTIVITIES, //
+    MaxCursorNameLength = SQL_MAX_CURSOR_NAME_LEN, //
+
     MaxDriverConnections = SQL_MAX_DRIVER_CONNECTIONS,
-    
-    MaxIdentifierLength = SQL_MAX_IDENTIFIER_LEN, // 
+
+    MaxIdentifierLength = SQL_MAX_IDENTIFIER_LEN, //
     MaxIndexSize = SQL_MAX_INDEX_SIZE, //
-    
+
     MaxProcedureNameLength = 33, // SQL_MAX_PROCEDURE_NAME_LEN, // 33
-    
+
     MaxQualifierNameLength = 34, // SQL_MAX_QUALIFIER_NAME_LEN, // 34 -- MAX_CATALOG_NAME_LEN
-    MaxRowSize = SQL_MAX_ROW_SIZE, // 
+    MaxRowSize = SQL_MAX_ROW_SIZE, //
     MaxRowSizeIncludesLong = 103, // SQL_MAX_ROW_SIZE_INCLUDES_LONG, // 103
-    
+
     MaxSchemaNameLength = SQL_MAX_SCHEMA_NAME_LEN, // SQL_MAX_OWNER_NAME_LEN // 32
-    MaxStatementLength = SQL_MAX_STATEMENT_LEN, // 
-    
+    MaxStatementLength = SQL_MAX_STATEMENT_LEN, //
+
     MaxTableNameLength = SQL_MAX_TABLE_NAME_LEN, //
-    MaxTablesInSelect = SQL_MAX_TABLES_IN_SELECT, // 
-    
-    MaxUserNameLength = SQL_MAX_USER_NAME_LEN, // 
+    MaxTablesInSelect = SQL_MAX_TABLES_IN_SELECT, //
+
+    MaxUserNameLength = SQL_MAX_USER_NAME_LEN, //
 
     MultipleResultSets = 36, // SQL_MULT_RESULT_SETS, // 36
     MultipleActiveTransactions = 37, // SQL_MULTIPLE_ACTIVE_TXN, // 37
 
     NeedLongDataLength = 111, // SQL_NEED_LONG_DATA_LEN, // 111
     NonNullableColumns = 75, // SQL_NON_NULLABLE_COLUMNS, // 75
-    NullCollation = SQL_NULL_COLLATION, // 
+    NullCollation = SQL_NULL_COLLATION, //
     NumericFunctions = 49, // SQL_NUMERIC_FUNCTIONS, // 49
 
     ODBC_SAG_CLI_Conformance = 15, // SQL_ODBC_SAG_CLI_CONFORMANCE, // 15
@@ -683,17 +696,17 @@ enum InfoType // SQLGetInfo
 
     RowUpdates = 11, // SQL_ROW_UPDATES, // 11
 
-    SchemaTerm = SQL_SCHEMA_TERM, // SQL_OWNER_TERM 
+    SchemaTerm = SQL_SCHEMA_TERM, // SQL_OWNER_TERM
     SchemaUsage = SQL_SCHEMA_USAGE, // SQL_OWNER_USAGE
     ScrollOptions = 44, // SQL_SCROLL_OPTIONS, // 44
-    SearchPatternEscape = SQL_SEARCH_PATTERN_ESCAPE, // 
-    ServerName = SQL_SERVER_NAME, // 
+    SearchPatternEscape = SQL_SEARCH_PATTERN_ESCAPE, //
+    ServerName = SQL_SERVER_NAME, //
     SetPositionOperations = 79, // SQL_POS_OPERATIONS, // 79
-    SpecialCharacters = SQL_SPECIAL_CHARACTERS, // 
+    SpecialCharacters = SQL_SPECIAL_CHARACTERS, //
     SQLConformance = 118, // SQL_SQL_CONFORMANCE, // 118
     StaticSensitivity = 83, // SQL_STATIC_SENSITIVITY, // 83
     StaticCursorAttributes1 = SQL_STATIC_CURSOR_ATTRIBUTES1, // 167
-    StaticCursorAttributes2 = SQL_STATIC_CURSOR_ATTRIBUTES2, // 168  
+    StaticCursorAttributes2 = SQL_STATIC_CURSOR_ATTRIBUTES2, // 168
     StringFunctions = 50, // SQL_STRING_FUNCTIONS, // 50
     Subqueries = 95, // SQL_SUBQUERIES, // 95
     SystemFunctions = 51, // SQL_SYSTEM_FUNCTIONS, // 51
@@ -702,8 +715,8 @@ enum InfoType // SQLGetInfo
     TimeDateAddIntervals = 109, // SQL_TIMEDATE_ADD_INTERVALS, // 109
     TimeDateDiffIntervals = 110, // SQL_TIMEDATE_DIFF_INTERVALS, // 110
     TimeDateFunctions = 52, // SQL_TIMEDATE_FUNCTIONS, // 52
-    TransactionCapabilities = SQL_TXN_CAPABLE, // 
-    TransactionIsolationOptions = SQL_TXN_ISOLATION_OPTION, // 
+    TransactionCapabilities = SQL_TXN_CAPABLE, //
+    TransactionIsolationOptions = SQL_TXN_ISOLATION_OPTION, //
 
     Union = SQL_UNION, // 96
     UserName = SQL_USER_NAME,
@@ -738,20 +751,20 @@ enum AlterTableBitmasks
 
 // dfmt off
 alias AlterTableCapabilities = Tuple!(
-    immutable(bool), "AddColumSingle", 
+    immutable(bool), "AddColumSingle",
     immutable(bool), "AddColumnDefault",
-    immutable(bool), "AddColumnCollation", 
-    immutable(bool), "SetColumnDefault", 
+    immutable(bool), "AddColumnCollation",
+    immutable(bool), "SetColumnDefault",
     immutable(bool), "DropColumnDefault",
-    immutable(bool), "DropColumnCascade", 
-    immutable(bool), "DropColumnRestrict", 
+    immutable(bool), "DropColumnCascade",
+    immutable(bool), "DropColumnRestrict",
     immutable(bool), "AddTableConstraint",
-    immutable(bool), "DropTableConstraintClause", 
-    immutable(bool), "DropTableConstraintRestrict", 
+    immutable(bool), "DropTableConstraintClause",
+    immutable(bool), "DropTableConstraintRestrict",
     immutable(bool), "ConstraintNameDefinition",
-    immutable(bool), "ConstraintInitiallyDeferred", 
+    immutable(bool), "ConstraintInitiallyDeferred",
     immutable(bool), "ConstraintInitiallyImmediate",
-    immutable(bool), "ConstraintDeferrable", 
+    immutable(bool), "ConstraintDeferrable",
     immutable(bool), "ConstraintNonDeferrable"
 );
 // dfmt on
@@ -787,29 +800,29 @@ enum ConvertBitmask
 
 // dfmt off
 alias ConvertCapabilities = Tuple!(
-    immutable(bool), "Char", 
+    immutable(bool), "Char",
     immutable(bool), "Numeric",
-    immutable(bool), "Decimal", 
-    immutable(bool), "Integer", 
+    immutable(bool), "Decimal",
+    immutable(bool), "Integer",
     immutable(bool), "Smallint",
-    immutable(bool), "Float", 
-    immutable(bool), "Real", 
+    immutable(bool), "Float",
+    immutable(bool), "Real",
     immutable(bool), "Double",
-    immutable(bool), "Varchar", 
-    immutable(bool), "Longvarchar", 
+    immutable(bool), "Varchar",
+    immutable(bool), "Longvarchar",
     immutable(bool), "Binary",
-    immutable(bool), "Bit", 
+    immutable(bool), "Bit",
     immutable(bool), "Tinyint",
-    immutable(bool), "Bigint", 
-    immutable(bool), "Date", 
-    immutable(bool), "Time", 
-    immutable(bool), "Timestamp", 
-    immutable(bool), "Longvarbinary", 
-    immutable(bool), "IntervalYearMonth", 
-    immutable(bool), "IntervalDayTime", 
-    immutable(bool), "Wchar", 
-    immutable(bool), "Wlongvarchar", 
-    immutable(bool), "Wvarchar", 
+    immutable(bool), "Bigint",
+    immutable(bool), "Date",
+    immutable(bool), "Time",
+    immutable(bool), "Timestamp",
+    immutable(bool), "Longvarbinary",
+    immutable(bool), "IntervalYearMonth",
+    immutable(bool), "IntervalDayTime",
+    immutable(bool), "Wchar",
+    immutable(bool), "Wlongvarchar",
+    immutable(bool), "Wvarchar",
     immutable(bool), "GUID"
 );
 // dfmt on
@@ -835,9 +848,9 @@ enum ColumnAttributes : SQLUSMALLINT
     Length = SQL_COLUMN_LENGTH, // 3
     Precision = SQL_COLUMN_PRECISION, // 4
     Scale = SQL_COLUMN_SCALE, // 5
-    DisplaySize = SQL_COLUMN_DISPLAY_SIZE, // 6 
+    DisplaySize = SQL_COLUMN_DISPLAY_SIZE, // 6
     Nullable = SQL_COLUMN_NULLABLE, // 7
-    Unsigned = SQL_COLUMN_UNSIGNED, // 8 
+    Unsigned = SQL_COLUMN_UNSIGNED, // 8
     Money = SQL_COLUMN_MONEY, // 9
     Updatable = SQL_COLUMN_UPDATABLE, // 10
     AutoIncrement = SQL_COLUMN_AUTO_INCREMENT, // 11
@@ -846,7 +859,7 @@ enum ColumnAttributes : SQLUSMALLINT
     TypeName = SQL_COLUMN_TYPE_NAME, // 14
     TableName = SQL_COLUMN_TABLE_NAME, // 15
     OwnerName = SQL_COLUMN_OWNER_NAME, // 16
-    QualifierName = SQL_COLUMN_QUALIFIER_NAME, // 17 
+    QualifierName = SQL_COLUMN_QUALIFIER_NAME, // 17
     Label = SQL_COLUMN_LABEL, // 18
     CollationOptionsMax = SQL_COLATT_OPT_MAX, // SQL_COLUMN_LABEL
     CollationOptionsMin = SQL_COLATT_OPT_MIN, // SQL_COLUMN_COUNT

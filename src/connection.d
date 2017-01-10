@@ -226,24 +226,37 @@ class Connection : ConnectionHandle
         return stmt;
     }
 
+    public string native_sql(string query)
+    {
+        alias sql_func = SQLNativeSql;
+        debug
+        {
+            this.statement.sql_function = fullyQualifiedName!sql_func;
+            this.statement.insert_kwarg("query", query);
+        }
+
+        SQLCHAR[] input_value = str_conv(query);
+        SQLCHAR[] output_value = new SQLCHAR[input_value.length * 2];
+
+        this.sqlreturn = sql_func(this.handle, input_value.ptr,
+                to!SQLINTEGER(query.length), output_value.ptr,
+                to!SQLINTEGER(output_value.length - 1), null);
+
+        debug this.debugger();
+        return str_conv(output_value.ptr);
+    }
+
     /// SQLTables
     public Prepared tables(string catalog = null, string schema = null,
             string table_name = null, string type = null)
     {
-        Statement stmt = this.statement();
-        //        return stmt.tables(catalog, schema, table_name, type);
-        Prepared prep = stmt.tables(catalog, schema, table_name, type);
-        return prep;
-        //        return (this.statement()).tables(catalog, schema, table_name, type);
+        return ((this.statement()).tables(catalog, schema, table_name, type));
     }
 
     /// SQLColumns
     public Prepared columns(string catalog = null, string schema = null,
             string table_name = null, string column_name = null)
     {
-        //    Statement stmt = this.statement();
-        //		  Prepared prep = stmt.columns(catalog, schema, table_name, column_name);
-        //    return prep;
         return (this.statement()).columns(catalog, schema, table_name, column_name);
     }
 
@@ -503,7 +516,7 @@ class Connection : ConnectionHandle
 
     public @property void tracefile(string input)
     {
-        SQLCHAR[] value = str_conv(input.ptr);
+        SQLCHAR[] value = str_conv(input);
         this.setAttribute(ConnectionAttributes.Tracefile, cast(pointer_t) value.ptr, SQL_NTS);
     }
 
